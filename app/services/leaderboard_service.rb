@@ -3,6 +3,22 @@
 class LeaderboardService
   Row = Data.define(:rank, :user, :total_points, :predictions_count, :exact_count, :diff_count, :tendency_count)
 
+  CACHE_KEY = "leaderboard/rows"
+  # NOTE: short TTL is only a safety net — Prediction/User after_commit hooks
+  # and ScoreFixtureJob expire the key eagerly on every relevant change.
+  CACHE_TTL = 1.minute
+
+  # Cached entry point used by the leaderboard page and the broadcast job.
+  # Backed by Solid Cache, so the ranked standings are computed once per
+  # change (or per minute) instead of on every page view.
+  def self.fetch_rows
+    Rails.cache.fetch(CACHE_KEY, expires_in: CACHE_TTL) { new.rows }
+  end
+
+  def self.expire_rows
+    Rails.cache.delete(CACHE_KEY)
+  end
+
   # Returns an array of Row, ordered by total points (champion bonus included
   # once the final is finished) with standard competition ranking ("1224") on
   # equal points. NOTE: assumption — ties share a rank based on total points

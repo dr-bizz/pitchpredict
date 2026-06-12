@@ -49,6 +49,36 @@ class LeaderboardServiceTest < ActiveSupport::TestCase
     assert_equal third, rows.last.user
   end
 
+  # NOTE: the test environment uses :null_store, so these caching tests swap in
+  # a MemoryStore to exercise the real fetch/expire behavior.
+  test "fetch_rows serves cached rows until expire_rows is called" do
+    with_memory_cache do
+      first = LeaderboardService.fetch_rows
+      assert_equal 4, first.find { |row| row.user == users(:two) }.total_points
+
+      # Change points behind the cache's back (update_columns skips callbacks).
+      predictions(:two_finished).update_columns(points_awarded: 0)
+      cached = LeaderboardService.fetch_rows
+      assert_equal 4, cached.find { |row| row.user == users(:two) }.total_points
+
+      LeaderboardService.expire_rows
+      fresh = LeaderboardService.fetch_rows
+      assert_equal 0, fresh.find { |row| row.user == users(:two) }.total_points
+    end
+  end
+
+  test "saving a prediction or creating a user expires the cached rows" do
+    with_memory_cache do
+      LeaderboardService.fetch_rows
+      predictions(:one_upcoming).update!(home_score: 5) # after_commit expires
+      assert_nil Rails.cache.read(LeaderboardService::CACHE_KEY)
+
+      LeaderboardService.fetch_rows
+      User.create!(name: "Newbie", email_address: "new@example.com", password: "password")
+      assert_nil Rails.cache.read(LeaderboardService::CACHE_KEY)
+    end
+  end
+
   test "runs a constant number of queries regardless of user count" do
     3.times { |i| User.create!(name: "U#{i}", email_address: "u#{i}@example.com", password: "password") }
 
@@ -59,5 +89,15 @@ class LeaderboardServiceTest < ActiveSupport::TestCase
     end
 
     assert_operator queries, :<=, 3, "expected no N+1 (got #{queries} queries)"
+  end
+
+  private
+
+  def with_memory_cache
+    original = Rails.cache
+    Rails.cache = ActiveSupport::Cache::MemoryStore.new
+    yield
+  ensure
+    Rails.cache = original
   end
 end

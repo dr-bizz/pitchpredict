@@ -9,4 +9,8 @@ class User < ApplicationRecord
   normalizes :email_address, with: ->(e) { e.strip.downcase }
 
   validates :name, presence: true
+
+  # Every user appears on the leaderboard (even with zero predictions), so new
+  # signups and renames must drop the cached rows from Solid Cache.
+  after_commit { LeaderboardService.expire_rows }
 end

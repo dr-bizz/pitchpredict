@@ -9,6 +9,11 @@ class ScoreFixtureJob < ApplicationJob
     fixture = Fixture.find(fixture_id)
     ScoringService.score_fixture!(fixture)
 
+    # Prediction after_commit hooks already expired the cached rows, but expire
+    # again defensively: a result correction on a fixture nobody predicted
+    # (e.g. the final, which drives the champion bonus) touches no Prediction.
+    LeaderboardService.expire_rows
+
     # CONTRACT with the UI stage: the leaderboard page subscribes with
     # turbo_stream_from "leaderboard" and renders leaderboards/_table inside
     # an element with id="leaderboard-table".
@@ -20,7 +25,7 @@ class ScoreFixtureJob < ApplicationJob
       "leaderboard",
       target: "leaderboard-table",
       partial: "leaderboards/table",
-      locals: { rows: LeaderboardService.new.rows, current_user: nil }
+      locals: { rows: LeaderboardService.fetch_rows, current_user: nil }
     )
   end
 end

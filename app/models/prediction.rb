@@ -13,6 +13,10 @@ class Prediction < ApplicationRecord
   scope :scored, -> { where.not(points_awarded: nil) }
   scope :for_stage, ->(stage) { joins(:fixture).where(fixtures: { stage: stage }) }
 
+  # Any prediction change (new pick, edit, points awarded) alters the cached
+  # leaderboard rows, so drop them from Solid Cache.
+  after_commit { LeaderboardService.expire_rows }
+
   private
 
   def scores_changed?

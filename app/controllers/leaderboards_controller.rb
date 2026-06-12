@@ -3,6 +3,6 @@ class LeaderboardsController < ApplicationController
   # action is #show rather than #index. Live updates arrive via the
   # "leaderboard" Turbo Stream broadcast from ScoreFixtureJob.
   def show
-    @rows = LeaderboardService.new.rows
+    @rows = LeaderboardService.fetch_rows
   end
 end
