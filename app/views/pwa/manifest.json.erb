@@ -1,10 +1,26 @@
 {
-  "name": "Pitchpredict",
+  "name": "PitchPredict",
+  "short_name": "PitchPredict",
+  "description": "Predict every World Cup 2026 score, pick your champion and climb the leaderboard.",
+  "id": "/",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "theme_color": "#0A7B4B",
+  "background_color": "#F7F8F6",
   "icons": [
+    {
+      "src": "<%= image_path "icon.svg" %>",
+      "type": "image/svg+xml",
+      "sizes": "any",
+      "purpose": "any"
+    },
     {
       "src": "/icon.png",
       "type": "image/png",
-      "sizes": "512x512"
+      "sizes": "512x512",
+      "purpose": "any"
     },
     {
       "src": "/icon.png",
@@ -13,10 +29,16 @@
       "purpose": "maskable"
     }
   ],
-  "start_url": "/",
-  "display": "standalone",
-  "scope": "/",
-  "description": "Pitchpredict.",
-  "theme_color": "red",
-  "background_color": "red"
+  "shortcuts": [
+    {
+      "name": "Predictions",
+      "url": "/predictions",
+      "description": "Enter your score predictions"
+    },
+    {
+      "name": "Leaderboard",
+      "url": "/leaderboard",
+      "description": "See the standings"
+    }
+  ]
 }

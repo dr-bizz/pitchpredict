@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="theme-color" content="#0A7B4B">
+  <title>Offline — PitchPredict</title>
+  <link rel="icon" href="/icon.svg" type="image/svg+xml">
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: linear-gradient(135deg, #0A7B4B 0%, #0A7B62 55%, #0A7B7B 100%);
+      color: #fff;
+      padding: 1.5rem;
+      text-align: center;
+    }
+    .panel {
+      max-width: 26rem;
+      background: rgba(255, 255, 255, 0.08);
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      border-radius: 1.5rem;
+      padding: 2.5rem 2rem;
+      backdrop-filter: blur(6px);
+    }
+    img { width: 88px; height: 88px; border-radius: 1.25rem; margin-bottom: 1.25rem; }
+    h1 { font-size: 1.5rem; letter-spacing: -0.02em; margin-bottom: 0.5rem; }
+    p { color: rgba(255, 255, 255, 0.8); line-height: 1.5; margin-bottom: 1.5rem; }
+    a.button {
+      display: inline-block;
+      background: #E8B53D;
+      color: #111418;
+      font-weight: 600;
+      text-decoration: none;
+      padding: 0.6rem 1.4rem;
+      border-radius: 0.75rem;
+    }
+    a.button:hover { background: #d9a52c; }
+  </style>
+</head>
+<body>
+  <div class="panel">
+    <img src="/icon.svg" alt="PitchPredict">
+    <h1>You&rsquo;re offline</h1>
+    <p>PitchPredict needs a connection to load fixtures and the leaderboard. Check your network and try again &mdash; the match will wait.</p>
+    <a class="button" href="/">Try again</a>
+  </div>
+</body>
+</html>
