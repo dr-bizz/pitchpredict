@@ -15,6 +15,11 @@
 
     <%= csrf_meta_tags %>
     <%= csp_meta_tag %>
+    <%# Lets client-side code (leaderboard_highlight_controller) know who is
+        viewing, so Turbo Stream broadcasts can stay viewer-agnostic. %>
+    <% if authenticated? %>
+      <meta name="current-user-id" content="<%= Current.user.id %>">
+    <% end %>
 
     <%= yield :head %>
 

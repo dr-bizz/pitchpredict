@@ -13,7 +13,9 @@ class ScoreFixtureJob < ApplicationJob
     # turbo_stream_from "leaderboard" and renders leaderboards/_table inside
     # an element with id="leaderboard-table".
     # NOTE: current_user is nil here — a background job has no session, so the
-    # broadcast partial cannot highlight the viewer's own row.
+    # broadcast HTML is viewer-agnostic. Each viewer's own-row highlight is
+    # re-applied client-side by leaderboard_highlight_controller.js (it matches
+    # tr[data-user-id] against the layout's current-user-id meta tag).
     Turbo::StreamsChannel.broadcast_replace_to(
       "leaderboard",
       target: "leaderboard-table",

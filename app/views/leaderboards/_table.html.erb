@@ -3,11 +3,14 @@
     - the root element keeps id="leaderboard-table" so
       Turbo::StreamsChannel.broadcast_replace_to can swap it in place;
     - locals: rows (Array<LeaderboardService::Row>) and current_user, which is
-      nil when rendered from the background job — in that case no row is
-      highlighted (each <tr> still carries data-current-user="true/false"). %>
+      nil when rendered from the background job. The server still highlights
+      the viewer's row when it can (no-JS fallback); after a broadcast the
+      leaderboard-highlight Stimulus controller re-applies the highlight
+      client-side via each row's data-user-id and the layout's
+      <meta name="current-user-id"> tag. %>
 <% viewer = local_assigns[:current_user] %>
 
-<div id="leaderboard-table">
+<div id="leaderboard-table" data-controller="leaderboard-highlight">
   <% if rows.empty? %>
     <div class="px-6 py-16 text-center">
       <p class="text-4xl" aria-hidden="true">🏆</p>
@@ -33,7 +36,7 @@
         <% rows.each do |row| %>
           <% mine = viewer.present? && row.user.id == viewer.id %>
           <% medal = { 1 => "🥇", 2 => "🥈", 3 => "🥉" }[row.rank] %>
-          <tr data-current-user="<%= mine %>" class="<%= "bg-pitch/5" if mine %>">
+          <tr data-user-id="<%= row.user.id %>" data-current-user="<%= mine %>" class="<%= "bg-pitch/5" if mine %>">
             <td class="px-3 py-3 sm:px-5">
               <% if medal %>
                 <span class="text-lg leading-none" title="Rank <%= row.rank %>"><%= medal %></span>
@@ -44,9 +47,9 @@
             </td>
             <td class="px-3 py-3 font-medium text-charcoal sm:px-5">
               <%= row.user.name %>
-              <% if mine %>
-                <span class="ml-1.5 rounded-full bg-pitch/10 px-2 py-0.5 text-[11px] font-semibold text-pitch-dark">You</span>
-              <% end %>
+              <%# Rendered for every row (hidden) so the Stimulus controller can
+                  reveal the viewer's badge after a viewer-agnostic broadcast. %>
+              <span data-you-badge class="ml-1.5 rounded-full bg-pitch/10 px-2 py-0.5 text-[11px] font-semibold text-pitch-dark" <%= "hidden" unless mine %>>You</span>
             </td>
             <td class="px-3 py-3 text-right sm:px-5">
               <span class="pill-points"><%= row.total_points %> pts</span>
