@@ -64,7 +64,25 @@ class ScoringServiceTest < ActiveSupport::TestCase
     assert_nil ScoringService.champion_team_id
   end
 
+  # NOTE: the bonus is applied at read time by LeaderboardService (it is never
+  # persisted on Prediction), so this asserts both the constant and that the
+  # leaderboard credits exactly +10 to the user who picked the champion.
+  test "champion bonus is worth 10 points and reaches the picker's total" do
+    assert_equal 10, ScoringService::CHAMPION_BONUS
+
+    totals_before = leaderboard_totals
+    create_finished_final(home_score: 2, away_score: 0) # brazil wins; users(:two) picked brazil
+    totals_after = leaderboard_totals
+
+    assert_equal totals_before[users(:two).id] + ScoringService::CHAMPION_BONUS, totals_after[users(:two).id]
+    assert_equal totals_before[users(:one).id], totals_after[users(:one).id]
+  end
+
   private
+
+  def leaderboard_totals
+    LeaderboardService.new.rows.to_h { |row| [ row.user.id, row.total_points ] }
+  end
 
   def create_finished_final(home_score:, away_score:)
     Fixture.create!(
