@@ -1,0 +1,128 @@
+<% content_for :title, "Dashboard" %>
+
+<div class="space-y-6">
+  <%# Hero %>
+  <section class="hero-gradient rounded-2xl px-5 py-8 shadow-card sm:px-8 sm:py-10">
+    <h1 class="text-2xl font-bold tracking-tight sm:text-3xl">Hello <%= Current.user.name %> 👋</h1>
+    <p class="mt-2 text-sm text-white/90 sm:text-base">
+      Your predictions:
+      <span class="font-semibold text-white"><%= @predicted_count %> of <%= @fixtures_count %></span>
+      matches predicted &middot;
+      <span class="font-semibold text-gold-light"><%= @total_points %> points</span>
+    </p>
+    <div class="mt-5">
+      <%= link_to "Continue predicting →", predictions_path, class: "btn-gold" %>
+    </div>
+  </section>
+
+  <div class="grid gap-6 lg:grid-cols-2">
+    <%# Champion pick %>
+    <section class="card">
+      <div class="card-pad">
+        <h2 class="section-title">Who will be the World Cup champion?</h2>
+
+        <% if @champion_pick.present? %>
+          <div class="mt-4 flex items-center gap-3 rounded-xl bg-surface px-4 py-3 ring-1 ring-black/5">
+            <span class="text-3xl" aria-hidden="true"><%= @champion_pick.team.flag_emoji %></span>
+            <div>
+              <p class="font-semibold text-charcoal"><%= @champion_pick.team.name %></p>
+              <p class="text-xs text-gray-500">Your champion pick &middot; worth +<%= ScoringService::CHAMPION_BONUS %> points if they lift the trophy</p>
+            </div>
+          </div>
+        <% end %>
+
+        <% if @champion_locked %>
+          <div class="mt-4 flex items-center gap-2">
+            <span class="pill-muted">🔒 Picks locked — tournament underway</span>
+          </div>
+          <% if @champion_pick.nil? %>
+            <p class="mt-3 text-sm text-gray-600">
+              You didn't make a champion pick before kickoff this time — no bonus on the line,
+              but your match predictions still count for everything else. Catch the picks window
+              early next tournament!
+            </p>
+          <% end %>
+        <% else %>
+          <%= form_with model: @champion_pick || ChampionPick.new, scope: :champion_pick,
+                        url: champion_pick_path, class: "mt-4 flex flex-col gap-3 sm:flex-row sm:items-end" do |form| %>
+            <div class="flex-1">
+              <%= form.label :team_id, "Pick your champion", class: "field-label" %>
+              <%= form.collection_select :team_id, @teams, :id,
+                    ->(team) { "#{team.flag_emoji} #{team.name}" },
+                    { prompt: "Choose a team…" }, class: "field" %>
+            </div>
+            <%= form.submit(@champion_pick ? "Update pick" : "Save pick", class: "btn-primary") %>
+          <% end %>
+          <p class="mt-3 text-xs text-gray-500">Locks at the opening kickoff. Correct pick earns a +<%= ScoringService::CHAMPION_BONUS %> point bonus.</p>
+        <% end %>
+      </div>
+    </section>
+
+    <%# Top 5 leaderboard %>
+    <section class="card">
+      <div class="card-pad">
+        <div class="flex items-center justify-between gap-2">
+          <h2 class="section-title">Top 5 on the leaderboard</h2>
+          <%= link_to "Full leaderboard →", leaderboard_path, class: "text-sm font-semibold text-pitch hover:text-pitch-dark" %>
+        </div>
+
+        <% if @top_rows.any? %>
+          <ol class="mt-4 divide-y divide-gray-100">
+            <% @top_rows.each do |row| %>
+              <li class="flex items-center gap-3 py-2.5 <%= "rounded-lg bg-gold-light/20 px-2 -mx-2" if row.user.id == Current.user.id %>">
+                <span class="w-7 shrink-0 text-center text-sm font-bold <%= row.rank == 1 ? "text-gold-dark" : "text-gray-400" %>">
+                  <%= row.rank == 1 ? "🏆" : row.rank %>
+                </span>
+                <span class="flex-1 truncate text-sm font-medium text-charcoal">
+                  <%= row.user.name %><%= " (you)" if row.user.id == Current.user.id %>
+                </span>
+                <span class="hidden text-xs text-gray-400 sm:inline"><%= row.predictions_count %> predictions</span>
+                <span class="pill-points"><%= row.total_points %> pts</span>
+              </li>
+            <% end %>
+          </ol>
+        <% else %>
+          <p class="mt-4 text-sm text-gray-600">No players yet — be the first on the board!</p>
+        <% end %>
+      </div>
+    </section>
+  </div>
+
+  <%# How it works %>
+  <section class="card">
+    <div class="card-pad">
+      <h2 class="section-title">How it works</h2>
+      <div class="mt-4 grid gap-6 sm:grid-cols-2">
+        <div>
+          <h3 class="text-sm font-semibold uppercase tracking-wide text-gray-500">Scoring</h3>
+          <ul class="mt-3 space-y-2 text-sm text-gray-700">
+            <li class="flex items-center gap-2">
+              <span class="pill-points"><%= ScoringService::EXACT_POINTS %> pts</span> Exact score
+            </li>
+            <li class="flex items-center gap-2">
+              <span class="pill-points"><%= ScoringService::DIFFERENCE_POINTS %> pts</span> Correct goal difference
+            </li>
+            <li class="flex items-center gap-2">
+              <span class="pill-points"><%= ScoringService::TENDENCY_POINTS %> pts</span> Correct outcome (win/draw/loss)
+            </li>
+            <li class="flex items-center gap-2">
+              <span class="pill-muted">0 pts</span> Wrong outcome
+            </li>
+            <li class="flex items-center gap-2">
+              <span class="pill-points">+<%= ScoringService::CHAMPION_BONUS %> pts</span> Champion pick bonus
+            </li>
+          </ul>
+        </div>
+        <div>
+          <h3 class="text-sm font-semibold uppercase tracking-wide text-gray-500">League rules</h3>
+          <ul class="mt-3 list-disc space-y-2 pl-5 text-sm text-gray-700">
+            <li>Predict the score of any match before its kickoff.</li>
+            <li>Predictions lock at kickoff — no edits once the whistle blows.</li>
+            <li>Pick your champion before the opening match for the bonus.</li>
+            <li>Points land automatically as soon as full-time results are in.</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </section>
+</div>
