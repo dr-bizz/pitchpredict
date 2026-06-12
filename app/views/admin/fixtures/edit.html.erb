@@ -19,7 +19,7 @@
       <%= @fixture.home_team.name %> <span class="font-normal text-charcoal/40">vs</span> <%= @fixture.away_team.name %>
     </h1>
     <p class="mt-1 text-sm text-charcoal/60">
-      <%= @fixture.kickoff_at.strftime("%A %-d %B %Y, %H:%M") %> ·
+      <%= kickoff_label(@fixture, style: :long) %> ·
       <%= @fixture.stadium.name %>, <%= @fixture.stadium.city %>
     </p>
 

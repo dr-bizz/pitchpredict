@@ -10,10 +10,18 @@ module FixturesHelper
     "final" => "Final"
   }.freeze
 
+  # Single source of truth for kickoff timestamps so every screen agrees.
   # NOTE: assumption — kickoff times are displayed in the app's default time
-  # zone (UTC unless config.time_zone is set). Per-user zones are out of scope.
-  def kickoff_label(fixture)
-    fixture.kickoff_at.strftime("%a %-d %b · %-I:%M %p")
+  # zone (UTC; config.time_zone is unset). Per-user zones are out of scope, so
+  # the zone is labelled explicitly — the tournament spans US/Canada/Mexico
+  # and an unlabelled "4:00 PM" would read as local time.
+  KICKOFF_FORMATS = {
+    short: "%a %-d %b · %-I:%M %p",        # fixture cards, admin index
+    long: "%A %-d %B %Y · %-I:%M %p"       # admin edit header
+  }.freeze
+
+  def kickoff_label(fixture, style: :short)
+    "#{fixture.kickoff_at.strftime(KICKOFF_FORMATS.fetch(style))} UTC"
   end
 
   def stage_tab_classes(active)

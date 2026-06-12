@@ -62,7 +62,7 @@
                 <div class="text-xs text-charcoal/50"><%= fixture.stadium.name %>, <%= fixture.stadium.city %></div>
               </td>
               <td class="px-4 py-3 whitespace-nowrap text-charcoal/70">
-                <%= fixture.kickoff_at.strftime("%a %-d %b, %H:%M") %>
+                <%= kickoff_label(fixture) %>
               </td>
               <td class="px-4 py-3"><span class="pill-muted"><%= stage_label(fixture.stage) %></span></td>
               <td class="px-4 py-3"><span class="<%= status_pill_class(fixture.status) %>"><%= fixture.status.humanize %></span></td>

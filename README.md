@@ -5,7 +5,8 @@ Players predict the score of every match before kickoff, pick a tournament
 champion, and climb a live-updating leaderboard as admins enter real results.
 
 - **Predict** – enter a scoreline for any fixture until it kicks off; predictions
-  lock automatically at kickoff.
+  lock automatically at kickoff (or earlier, the moment a result is recorded).
+  All kickoff times are shown in UTC.
 - **Champion pick** – choose the team you think lifts the trophy before the
   tournament's first match; correct picks earn a bonus once the final is decided.
 - **Score** – when an admin records a result, a background job rescores every
@@ -70,8 +71,8 @@ the final's result automatically corrects every total.
 | `Session` | database-backed sessions from the Rails 8 authentication generator |
 | `Team` | 48 teams in groups A–L, unique 3-letter FIFA code, flag emoji |
 | `Stadium` | 16 host venues (table name `stadia`) |
-| `Fixture` | match between two teams at a stadium; `enum :stage` (group → final) and `enum :status` (scheduled/live/finished); `locked?` once `kickoff_at` passes |
-| `Prediction` | a user's scoreline (0–20) for one fixture; unique per user+fixture; rejects create/edit after kickoff; `points_awarded` set by scoring |
+| `Fixture` | match between two teams at a stadium; `enum :stage` (group → final) and `enum :status` (scheduled/live/finished); `locked?` once `kickoff_at` passes or the fixture leaves `scheduled` (early result entry must close predicting) |
+| `Prediction` | a user's scoreline (0–20) for one fixture; unique per user+fixture; rejects create/edit once the fixture is locked; `points_awarded` set by scoring |
 | `ChampionPick` | one per user; locked once the tournament's first fixture kicks off |
 | `ScoringService` | pure scoring rules (`points_for`), idempotent `score_fixture!`, and `champion_team_id` from the finished final |
 | `LeaderboardService` | ranked rows (total points, exact/diff/tendency counts) in two SQL queries, with standard competition ranking and the champion bonus applied at read time |
@@ -94,7 +95,9 @@ Turbo Frame card; `Admin::FixturesController` records results and enqueues
   cache, queue, and cable.
 - **Solid Queue** – background jobs (`ScoreFixtureJob`) without Redis; runs
   inside Puma via the `plugin :solid_queue` line in `config/puma.rb`.
-- **Solid Cache** – database-backed Rails cache (`config/cache.yml`).
+- **Solid Cache** – database-backed Rails cache (`config/cache.yml`); the
+  ranked leaderboard rows are served from it (`LeaderboardService.fetch_rows`)
+  and expired eagerly whenever predictions, users, or results change.
 - **Solid Cable** – database-backed Action Cable for the live leaderboard
   broadcasts (`config/cable.yml`).
 - **Propshaft + importmap** – no Node build step; JavaScript ships as ES modules
@@ -102,8 +105,9 @@ Turbo Frame card; `Admin::FixturesController` records results and enqueues
 - **Turbo 8 morphing** – `<meta name="turbo-refresh-method" content="morph">`
   in the layout; prediction cards are Turbo Frames, the leaderboard updates via
   Turbo Streams.
-- **Stimulus** – `app/javascript/controllers/stepper_controller.js` powers the
-  +/- score steppers on the predictions grid.
+- **Stimulus** – `stepper_controller.js` powers the +/- score steppers on the
+  predictions grid; `leaderboard_highlight_controller.js` re-applies your
+  own-row highlight after each viewer-agnostic leaderboard broadcast.
 - **tailwindcss-rails (Tailwind v4)** – design system in
   `app/assets/tailwind/application.css` using `@theme` tokens and shared
   component classes.
