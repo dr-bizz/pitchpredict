@@ -1,0 +1,45 @@
+<% content_for :title, "Predictions" %>
+
+<div class="space-y-6">
+  <header>
+    <h1 class="page-title">Predictions</h1>
+    <p class="mt-1 text-sm text-charcoal/60">
+      Lock in your scores before kickoff — 4 pts exact, 3 pts goal difference, 2 pts outcome.
+    </p>
+  </header>
+
+  <nav class="flex flex-wrap gap-2" aria-label="Tournament stages">
+    <% FixturesHelper::STAGE_TABS.each do |stage, label| %>
+      <%= link_to label, predictions_path(stage: stage),
+                  class: stage_tab_classes(stage == @stage),
+                  aria: { current: stage == @stage ? "page" : nil } %>
+    <% end %>
+  </nav>
+
+  <% if @fixtures.empty? %>
+    <div class="card card-pad text-center text-sm text-charcoal/60">
+      No fixtures scheduled for this stage yet. Check back once the bracket is set.
+    </div>
+  <% elsif @grouped %>
+    <% @grouped.each do |group_name, fixtures| %>
+      <section class="space-y-3">
+        <h2 class="section-title">Group <%= group_name %></h2>
+        <div class="grid gap-4 sm:grid-cols-2">
+          <% fixtures.each do |fixture| %>
+            <%= render "fixtures/fixture_card",
+                       fixture: fixture,
+                       prediction: @predictions_by_fixture_id[fixture.id] %>
+          <% end %>
+        </div>
+      </section>
+    <% end %>
+  <% else %>
+    <div class="grid gap-4 sm:grid-cols-2">
+      <% @fixtures.each do |fixture| %>
+        <%= render "fixtures/fixture_card",
+                   fixture: fixture,
+                   prediction: @predictions_by_fixture_id[fixture.id] %>
+      <% end %>
+    </div>
+  <% end %>
+</div>
