@@ -25,14 +25,23 @@ Rails.application.configure do
     config.action_controller.perform_caching = false
   end
 
-  # Change to :null_store to avoid any caching.
-  config.cache_store = :memory_store
+  # Use Solid Cache (DB-backed) in development to match production behavior.
+  config.cache_store = :solid_cache_store
+
+  # Use Solid Queue (DB-backed) in development to match production behavior.
+  config.active_job.queue_adapter = :solid_queue
+  config.solid_queue.connects_to = { database: { writing: :queue } }
 
   # Store uploaded files on the local file system (see config/storage.yml for options).
   config.active_storage.service = :local
 
   # Don't care if the mailer can't send.
   config.action_mailer.raise_delivery_errors = false
+
+  # NOTE: Use the :test delivery method in development so password resets
+  # never crash without an SMTP server. Swap for letter_opener later if
+  # previewing emails in the browser is desired.
+  config.action_mailer.delivery_method = :test
 
   # Make template changes take effect immediately.
   config.action_mailer.perform_caching = false

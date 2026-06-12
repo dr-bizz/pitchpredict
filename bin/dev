@@ -8,6 +8,11 @@ fi
 # Default to port 3000 if not specified
 export PORT="${PORT:-3000}"
 
+# NOTE: Run Solid Queue inside the Puma process in development
+# (see `plugin :solid_queue if ENV["SOLID_QUEUE_IN_PUMA"]` in config/puma.rb),
+# so bin/dev processes background jobs without a separate worker line.
+export SOLID_QUEUE_IN_PUMA="1"
+
 # Let the debug gem allow remote connections,
 # but avoid loading until `debugger` is called
 export RUBY_DEBUG_OPEN="true"
