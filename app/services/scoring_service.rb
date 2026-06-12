@@ -29,15 +29,20 @@ class ScoringService
       # raise rather than silently no-op (a retried job would mask the problem).
       raise ArgumentError, "Fixture #{fixture.id} is not finished" unless fixture.finished?
 
-      fixture.predictions.find_each do |prediction|
-        prediction.update!(
-          points_awarded: points_for(
-            predicted_home: prediction.home_score,
-            predicted_away: prediction.away_score,
-            actual_home: fixture.home_score,
-            actual_away: fixture.away_score
+      # All-or-nothing: a mid-loop failure must not leave some predictions on
+      # new points and others stale (the standings would be silently wrong
+      # until an admin re-saves the result).
+      fixture.transaction do
+        fixture.predictions.find_each do |prediction|
+          prediction.update!(
+            points_awarded: points_for(
+              predicted_home: prediction.home_score,
+              predicted_away: prediction.away_score,
+              actual_home: fixture.home_score,
+              actual_away: fixture.away_score
+            )
           )
-        )
+        end
       end
     end
 
