@@ -10,7 +10,16 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_06_12_224713) do
+ActiveRecord::Schema[8.1].define(version: 2026_06_12_224715) do
+  create_table "champion_picks", force: :cascade do |t|
+    t.datetime "created_at", null: false
+    t.integer "team_id", null: false
+    t.datetime "updated_at", null: false
+    t.integer "user_id", null: false
+    t.index ["team_id"], name: "index_champion_picks_on_team_id"
+    t.index ["user_id"], name: "index_champion_picks_on_user_id", unique: true
+  end
+
   create_table "fixtures", force: :cascade do |t|
     t.integer "away_score"
     t.integer "away_team_id", null: false
@@ -26,6 +35,18 @@ ActiveRecord::Schema[8.1].define(version: 2026_06_12_224713) do
     t.index ["home_team_id"], name: "index_fixtures_on_home_team_id"
     t.index ["kickoff_at"], name: "index_fixtures_on_kickoff_at"
     t.index ["stadium_id"], name: "index_fixtures_on_stadium_id"
+  end
+
+  create_table "predictions", force: :cascade do |t|
+    t.integer "away_score", null: false
+    t.datetime "created_at", null: false
+    t.integer "fixture_id", null: false
+    t.integer "home_score", null: false
+    t.integer "points_awarded"
+    t.datetime "updated_at", null: false
+    t.integer "user_id", null: false
+    t.index ["fixture_id"], name: "index_predictions_on_fixture_id"
+    t.index ["user_id", "fixture_id"], name: "index_predictions_on_user_id_and_fixture_id", unique: true
   end
 
   create_table "sessions", force: :cascade do |t|
@@ -67,8 +88,12 @@ ActiveRecord::Schema[8.1].define(version: 2026_06_12_224713) do
     t.index ["email_address"], name: "index_users_on_email_address", unique: true
   end
 
+  add_foreign_key "champion_picks", "teams"
+  add_foreign_key "champion_picks", "users"
   add_foreign_key "fixtures", "stadia"
   add_foreign_key "fixtures", "teams", column: "away_team_id"
   add_foreign_key "fixtures", "teams", column: "home_team_id"
+  add_foreign_key "predictions", "fixtures"
+  add_foreign_key "predictions", "users"
   add_foreign_key "sessions", "users"
 end
