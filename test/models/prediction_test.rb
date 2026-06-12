@@ -31,6 +31,15 @@ class PredictionTest < ActiveSupport::TestCase
     assert_not existing.valid?
   end
 
+  test "cannot predict a fixture whose result was entered before kickoff" do
+    fixture = fixtures(:upcoming_group)
+    fixture.update!(status: :finished, home_score: 2, away_score: 1)
+
+    sneaky = Prediction.new(user: users(:two), fixture: fixture, home_score: 2, away_score: 1)
+    assert_not sneaky.valid?
+    assert_match(/locked/, sneaky.errors.full_messages.to_sentence)
+  end
+
   test "points_awarded can be saved after kickoff when scores are untouched" do
     existing = predictions(:two_finished)
     existing.points_awarded = 3

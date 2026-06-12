@@ -21,9 +21,13 @@ class Fixture < ApplicationRecord
   scope :past, -> { where(kickoff_at: ...Time.current).order(kickoff_at: :desc) }
   scope :by_stage, ->(stage) { where(stage: stage) }
 
-  # Predictions lock at kickoff.
+  # Predictions lock at kickoff — or earlier, the moment a result exists.
+  # NOTE: admins may enter a result before kickoff (abandoned/rescheduled
+  # matches, data-entry ahead of time); once the outcome is known (or the match
+  # is live) predicting must close, otherwise players could "predict" the known
+  # score for full points. Hence the status check on top of the time check.
   def locked?
-    kickoff_at <= Time.current
+    kickoff_at <= Time.current || !scheduled?
   end
 
   private

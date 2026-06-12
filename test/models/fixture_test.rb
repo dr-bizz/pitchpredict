@@ -6,6 +6,21 @@ class FixtureTest < ActiveSupport::TestCase
     assert_not fixtures(:upcoming_group).locked?
   end
 
+  test "locked? is true when a result is entered before kickoff" do
+    fixture = fixtures(:upcoming_group)
+    fixture.update!(status: :finished, home_score: 2, away_score: 1)
+
+    assert fixture.kickoff_at.future?, "precondition: kickoff has not passed"
+    assert fixture.locked?
+  end
+
+  test "locked? is true for a live fixture even before kickoff" do
+    fixture = fixtures(:upcoming_group)
+    fixture.status = :live
+
+    assert fixture.locked?
+  end
+
   test "home and away team must differ" do
     fixture = fixtures(:upcoming_group)
     fixture.away_team = fixture.home_team
