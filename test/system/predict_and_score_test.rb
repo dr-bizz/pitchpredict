@@ -1,9 +1,13 @@
 require "application_system_test_case"
 
 class PredictAndScoreTest < ApplicationSystemTestCase
-  test "player predicts a match, the result is scored and the leaderboard shows the points" do
+  include ActiveJob::TestHelper
+
+  test "player predicts a match, an admin scores it and the leaderboard shows the points" do
     user = users(:two) # has no prediction on the upcoming fixture
     fixture = fixtures(:upcoming_group) # Spain v Canada, kicks off in 7 days
+    admin = User.create!(name: "Admin", email_address: "admin-system@example.com",
+                         password: "password", role: :admin)
 
     sign_in_through_ui(user)
 
@@ -25,19 +29,38 @@ class PredictAndScoreTest < ApplicationSystemTestCase
     prediction = user.predictions.find_by!(fixture: fixture)
     assert_equal [ 3, 1 ], [ prediction.home_score, prediction.away_score ]
 
-    # --- Result comes in: 3-1, an exact hit ---------------------------------
-    # NOTE: scoring is driven via the model + job rather than a second admin
-    # browser session; the admin UI flow itself is covered by
-    # test/controllers/admin/fixtures_controller_test.rb. The job is the exact
-    # code path Admin::FixturesController#update enqueues.
-    fixture.update!(kickoff_at: 1.hour.ago, status: :finished, home_score: 3, away_score: 1)
-    ScoreFixtureJob.perform_now(fixture.id)
+    # --- Kickoff passes; the admin enters the 3-1 result through the UI -----
+    # NOTE: only the clock is moved via the model — the scoring itself is
+    # driven end-to-end through the admin screens below, in a second browser
+    # session so the player stays signed in.
+    fixture.update!(kickoff_at: 1.hour.ago)
 
-    # --- The leaderboard reflects the points through the UI -----------------
+    using_session :admin do
+      sign_in_through_ui(admin)
+
+      visit admin_fixtures_path
+      within "tr", text: "Spain" do
+        click_on "Enter result"
+      end
+
+      fill_in "Spain (ESP)", with: "3"
+      fill_in "Canada (CAN)", with: "1"
+      # The controller enqueues ScoreFixtureJob (test adapter); perform it so
+      # the predictions are scored just like the Solid Queue worker would.
+      perform_enqueued_jobs do
+        click_on "Save result & score predictions"
+        assert_text "Result saved: Spain 3–1 Canada"
+      end
+    end
+
+    assert_equal 4, prediction.reload.points_awarded # exact hit
+
+    # --- The player sees the points on the leaderboard ----------------------
     visit leaderboard_path
 
     within "tr[data-current-user='true']" do
       assert_text user.name
+      assert_selector "[data-you-badge]:not([hidden])", text: "You"
       # 5 pts from the seeded finished fixture + 4 pts for the exact hit.
       assert_text "9 pts"
     end
