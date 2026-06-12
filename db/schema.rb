@@ -10,7 +10,24 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_06_12_224712) do
+ActiveRecord::Schema[8.1].define(version: 2026_06_12_224713) do
+  create_table "fixtures", force: :cascade do |t|
+    t.integer "away_score"
+    t.integer "away_team_id", null: false
+    t.datetime "created_at", null: false
+    t.integer "home_score"
+    t.integer "home_team_id", null: false
+    t.datetime "kickoff_at", null: false
+    t.integer "stadium_id", null: false
+    t.integer "stage", default: 0, null: false
+    t.integer "status", default: 0, null: false
+    t.datetime "updated_at", null: false
+    t.index ["away_team_id"], name: "index_fixtures_on_away_team_id"
+    t.index ["home_team_id"], name: "index_fixtures_on_home_team_id"
+    t.index ["kickoff_at"], name: "index_fixtures_on_kickoff_at"
+    t.index ["stadium_id"], name: "index_fixtures_on_stadium_id"
+  end
+
   create_table "sessions", force: :cascade do |t|
     t.datetime "created_at", null: false
     t.string "ip_address"
@@ -50,5 +67,8 @@ ActiveRecord::Schema[8.1].define(version: 2026_06_12_224712) do
     t.index ["email_address"], name: "index_users_on_email_address", unique: true
   end
 
+  add_foreign_key "fixtures", "stadia"
+  add_foreign_key "fixtures", "teams", column: "away_team_id"
+  add_foreign_key "fixtures", "teams", column: "home_team_id"
   add_foreign_key "sessions", "users"
 end
