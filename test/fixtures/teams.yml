@@ -1,0 +1,27 @@
+spain:
+  name: Spain
+  code: ESP
+  group_name: A
+  flag_emoji: "🇪🇸"
+  confederation: UEFA
+
+france:
+  name: France
+  code: FRA
+  group_name: B
+  flag_emoji: "🇫🇷"
+  confederation: UEFA
+
+brazil:
+  name: Brazil
+  code: BRA
+  group_name: C
+  flag_emoji: "🇧🇷"
+  confederation: CONMEBOL
+
+canada:
+  name: Canada
+  code: CAN
+  group_name: A
+  flag_emoji: "🇨🇦"
+  confederation: CONCACAF

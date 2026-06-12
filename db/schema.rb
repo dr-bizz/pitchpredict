@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_06_12_224113) do
+ActiveRecord::Schema[8.1].define(version: 2026_06_12_224712) do
   create_table "sessions", force: :cascade do |t|
     t.datetime "created_at", null: false
     t.string "ip_address"
@@ -18,6 +18,26 @@ ActiveRecord::Schema[8.1].define(version: 2026_06_12_224113) do
     t.string "user_agent"
     t.integer "user_id", null: false
     t.index ["user_id"], name: "index_sessions_on_user_id"
+  end
+
+  create_table "stadia", force: :cascade do |t|
+    t.string "city", null: false
+    t.string "country", null: false
+    t.datetime "created_at", null: false
+    t.string "name", null: false
+    t.datetime "updated_at", null: false
+  end
+
+  create_table "teams", force: :cascade do |t|
+    t.string "code", null: false
+    t.string "confederation"
+    t.datetime "created_at", null: false
+    t.string "flag_emoji"
+    t.string "group_name", null: false
+    t.string "name", null: false
+    t.datetime "updated_at", null: false
+    t.index ["code"], name: "index_teams_on_code", unique: true
+    t.index ["group_name"], name: "index_teams_on_group_name"
   end
 
   create_table "users", force: :cascade do |t|
