@@ -1,0 +1,29 @@
+<%# Placeholder partial — the Screens stage will restyle this. It must keep
+    id="leaderboard-table" and accept locals: rows (LeaderboardService::Row
+    array) and current_user (may be nil, e.g. when broadcast from a job). %>
+<table id="leaderboard-table">
+  <thead>
+    <tr>
+      <th>Rank</th>
+      <th>Player</th>
+      <th>Points</th>
+      <th>Predictions</th>
+      <th>Exact</th>
+      <th>Goal diff</th>
+      <th>Tendency</th>
+    </tr>
+  </thead>
+  <tbody>
+    <% rows.each do |row| %>
+      <tr data-current-user="<%= current_user.present? && row.user.id == current_user.id %>">
+        <td><%= row.rank %></td>
+        <td><%= row.user.name %></td>
+        <td><%= row.total_points %></td>
+        <td><%= row.predictions_count %></td>
+        <td><%= row.exact_count %></td>
+        <td><%= row.diff_count %></td>
+        <td><%= row.tendency_count %></td>
+      </tr>
+    <% end %>
+  </tbody>
+</table>
