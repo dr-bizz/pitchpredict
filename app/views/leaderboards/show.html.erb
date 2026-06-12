@@ -1,0 +1,26 @@
+<% content_for :title, "Leaderboard" %>
+
+<%# Subscribe to live updates: ScoreFixtureJob broadcasts a replace targeting
+    id="leaderboard-table" (the root element of the _table partial below). %>
+<%= turbo_stream_from "leaderboard" %>
+
+<div class="space-y-6">
+  <header class="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
+    <div>
+      <h1 class="page-title">Leaderboard</h1>
+      <p class="mt-1 text-sm text-charcoal/60">
+        Live standings &mdash; updates automatically as results are scored.
+      </p>
+    </div>
+    <p class="text-xs text-charcoal/50">
+      Exact score <span class="font-semibold text-charcoal/70">4 pts</span> &middot;
+      Goal difference <span class="font-semibold text-charcoal/70">3 pts</span> &middot;
+      Correct result <span class="font-semibold text-charcoal/70">2 pts</span> &middot;
+      Champion bonus <span class="font-semibold text-gold-dark">+10</span>
+    </p>
+  </header>
+
+  <section class="card overflow-hidden">
+    <%= render "table", rows: @rows, current_user: Current.user %>
+  </section>
+</div>

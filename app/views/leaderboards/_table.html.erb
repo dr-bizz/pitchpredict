@@ -1,29 +1,63 @@
-<%# Placeholder partial — the Screens stage will restyle this. It must keep
-    id="leaderboard-table" and accept locals: rows (LeaderboardService::Row
-    array) and current_user (may be nil, e.g. when broadcast from a job). %>
-<table id="leaderboard-table">
-  <thead>
-    <tr>
-      <th>Rank</th>
-      <th>Player</th>
-      <th>Points</th>
-      <th>Predictions</th>
-      <th>Exact</th>
-      <th>Goal diff</th>
-      <th>Tendency</th>
-    </tr>
-  </thead>
-  <tbody>
-    <% rows.each do |row| %>
-      <tr data-current-user="<%= current_user.present? && row.user.id == current_user.id %>">
-        <td><%= row.rank %></td>
-        <td><%= row.user.name %></td>
-        <td><%= row.total_points %></td>
-        <td><%= row.predictions_count %></td>
-        <td><%= row.exact_count %></td>
-        <td><%= row.diff_count %></td>
-        <td><%= row.tendency_count %></td>
-      </tr>
-    <% end %>
-  </tbody>
-</table>
+<%# Live leaderboard table.
+    BROADCAST CONTRACT (ScoreFixtureJob — do not break):
+    - the root element keeps id="leaderboard-table" so
+      Turbo::StreamsChannel.broadcast_replace_to can swap it in place;
+    - locals: rows (Array<LeaderboardService::Row>) and current_user, which is
+      nil when rendered from the background job — in that case no row is
+      highlighted (each <tr> still carries data-current-user="true/false"). %>
+<% viewer = local_assigns[:current_user] %>
+
+<div id="leaderboard-table">
+  <% if rows.empty? %>
+    <div class="px-6 py-16 text-center">
+      <p class="text-4xl" aria-hidden="true">🏆</p>
+      <h2 class="section-title mt-4">No standings yet</h2>
+      <p class="mt-1 text-sm text-charcoal/60">
+        Make some predictions and the table will fill up once results are scored.
+      </p>
+    </div>
+  <% else %>
+    <table class="w-full text-left text-sm">
+      <thead>
+        <tr class="border-b border-charcoal/10 bg-surface/60 text-xs font-semibold uppercase tracking-wide text-charcoal/50">
+          <th scope="col" class="px-3 py-3 sm:px-5">Rank</th>
+          <th scope="col" class="px-3 py-3 sm:px-5">Player</th>
+          <th scope="col" class="px-3 py-3 text-right sm:px-5">Points</th>
+          <th scope="col" class="hidden px-3 py-3 text-right sm:table-cell sm:px-5">Predictions</th>
+          <th scope="col" class="hidden px-3 py-3 text-right md:table-cell md:px-5">Exact</th>
+          <th scope="col" class="hidden px-3 py-3 text-right md:table-cell md:px-5">Diff</th>
+          <th scope="col" class="hidden px-3 py-3 text-right md:table-cell md:px-5">Tendency</th>
+        </tr>
+      </thead>
+      <tbody class="divide-y divide-charcoal/5">
+        <% rows.each do |row| %>
+          <% mine = viewer.present? && row.user.id == viewer.id %>
+          <% medal = { 1 => "🥇", 2 => "🥈", 3 => "🥉" }[row.rank] %>
+          <tr data-current-user="<%= mine %>" class="<%= "bg-pitch/5" if mine %>">
+            <td class="px-3 py-3 sm:px-5">
+              <% if medal %>
+                <span class="text-lg leading-none" title="Rank <%= row.rank %>"><%= medal %></span>
+                <span class="sr-only"><%= row.rank %></span>
+              <% else %>
+                <span class="inline-flex h-7 w-7 items-center justify-center rounded-full bg-charcoal/5 text-xs font-semibold text-charcoal/70"><%= row.rank %></span>
+              <% end %>
+            </td>
+            <td class="px-3 py-3 font-medium text-charcoal sm:px-5">
+              <%= row.user.name %>
+              <% if mine %>
+                <span class="ml-1.5 rounded-full bg-pitch/10 px-2 py-0.5 text-[11px] font-semibold text-pitch-dark">You</span>
+              <% end %>
+            </td>
+            <td class="px-3 py-3 text-right sm:px-5">
+              <span class="pill-points"><%= row.total_points %> pts</span>
+            </td>
+            <td class="hidden px-3 py-3 text-right tabular-nums text-charcoal/70 sm:table-cell sm:px-5"><%= row.predictions_count %></td>
+            <td class="hidden px-3 py-3 text-right tabular-nums text-charcoal/70 md:table-cell md:px-5"><%= row.exact_count %></td>
+            <td class="hidden px-3 py-3 text-right tabular-nums text-charcoal/70 md:table-cell md:px-5"><%= row.diff_count %></td>
+            <td class="hidden px-3 py-3 text-right tabular-nums text-charcoal/70 md:table-cell md:px-5"><%= row.tendency_count %></td>
+          </tr>
+        <% end %>
+      </tbody>
+    </table>
+  <% end %>
+</div>
