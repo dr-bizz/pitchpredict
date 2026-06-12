@@ -1,1 +1,124 @@
 @import "tailwindcss";
+
+/*
+  PitchPredict design tokens (Tailwind v4 @theme).
+  Use as standard utilities: bg-pitch, text-gold, border-charcoal, bg-surface,
+  shadow-card, etc.
+*/
+@theme {
+  --color-pitch: #0a7b4b; /* primary emerald */
+  --color-pitch-dark: #075c38;
+  --color-pitch-light: #e6f4ed;
+  --color-gold: #e8b53d;
+  --color-gold-dark: #b4861f;
+  --color-gold-light: #fdf3da;
+  --color-charcoal: #111418;
+  --color-surface: #f7f8f6; /* off-white page background */
+  --color-teal-accent: #0a7b7b;
+
+  --shadow-card: 0 1px 2px rgb(17 20 24 / 0.04), 0 6px 24px -8px rgb(17 20 24 / 0.12);
+}
+
+/*
+  Shared component classes. Screen-builder agents should use these instead of
+  re-rolling their own card/badge/button styles. Each class is standalone
+  (e.g. class="pill-points" — no need to also add "pill").
+  NOTE: v4 @apply cannot reference custom classes, hence the grouped selectors.
+*/
+@layer components {
+  /* --- Surfaces ----------------------------------------------------- */
+  .card {
+    @apply rounded-2xl bg-white shadow-card ring-1 ring-charcoal/5;
+  }
+  .card-pad {
+    @apply p-5 sm:p-6;
+  }
+  /* Green -> teal gradient for hero/banner sections */
+  .hero-gradient {
+    @apply bg-linear-to-br from-pitch via-[#0a7b62] to-teal-accent text-white;
+  }
+
+  /* --- Typography ---------------------------------------------------- */
+  .page-title {
+    @apply text-2xl sm:text-3xl font-bold tracking-tight text-charcoal;
+  }
+  .section-title {
+    @apply text-sm font-semibold uppercase tracking-wider text-charcoal/60;
+  }
+
+  /* --- Pills / badges ------------------------------------------------ */
+  .pill,
+  .pill-predicted,
+  .pill-points,
+  .pill-live,
+  .pill-muted {
+    @apply inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-semibold;
+  }
+  .pill-predicted {
+    @apply bg-pitch-light text-pitch-dark; /* green "Predicted" */
+  }
+  .pill-points {
+    @apply bg-gold-light text-gold-dark; /* gold points badge */
+  }
+  .pill-live {
+    @apply bg-red-100 text-red-700;
+  }
+  .pill-muted {
+    @apply bg-charcoal/5 text-charcoal/60;
+  }
+
+  /* --- Buttons -------------------------------------------------------- */
+  .btn,
+  .btn-primary,
+  .btn-gold,
+  .btn-ghost {
+    @apply inline-flex items-center justify-center gap-1.5 rounded-xl px-4 py-2 text-sm font-semibold
+      transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed
+      focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-pitch;
+  }
+  .btn-primary {
+    @apply bg-pitch text-white hover:bg-pitch-dark;
+  }
+  .btn-gold {
+    @apply bg-gold text-charcoal hover:bg-gold-dark hover:text-white;
+  }
+  .btn-ghost {
+    @apply bg-transparent text-charcoal hover:bg-charcoal/5;
+  }
+
+  /* --- Forms ----------------------------------------------------------- */
+  .field,
+  .score-input {
+    @apply w-full rounded-xl border border-charcoal/15 bg-white px-3 py-2 text-sm text-charcoal
+      placeholder:text-charcoal/40 focus:border-pitch focus:ring-2 focus:ring-pitch/30 focus:outline-none;
+  }
+  .field-label {
+    @apply block text-sm font-medium text-charcoal mb-1;
+  }
+  /* Compact numeric score input for prediction grids */
+  .score-input {
+    @apply w-14 px-0 py-1.5 text-center text-base font-bold tabular-nums;
+  }
+
+  /* --- Navigation (on the emerald top bar) ----------------------------- */
+  .nav-link,
+  .nav-link-active {
+    @apply rounded-lg px-3 py-2 text-sm font-medium text-white/80 hover:bg-white/10 hover:text-white transition-colors;
+  }
+  .nav-link-active {
+    @apply bg-white/15 text-white;
+  }
+
+  /* --- Flash messages ----------------------------------------------------- */
+  .flash,
+  .flash-notice,
+  .flash-alert {
+    @apply rounded-xl px-4 py-3 text-sm font-medium shadow-card;
+  }
+  .flash-notice {
+    @apply bg-pitch-light text-pitch-dark ring-1 ring-pitch/20;
+  }
+  .flash-alert {
+    @apply bg-red-50 text-red-700 ring-1 ring-red-200;
+  }
+}
