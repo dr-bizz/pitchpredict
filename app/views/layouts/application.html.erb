@@ -67,7 +67,8 @@
     <% if flash.any? %>
       <div class="mx-auto mt-4 max-w-5xl space-y-2 px-4 sm:px-6">
         <% flash.each do |type, message| %>
-          <div class="<%= type.to_s == "alert" ? "flash-alert" : "flash-notice" %>" role="status">
+          <%# Errors must interrupt screen readers (role=alert); notices stay polite. %>
+          <div class="<%= type.to_s == "alert" ? "flash-alert" : "flash-notice" %>" role="<%= type.to_s == "alert" ? "alert" : "status" %>">
             <%= message %>
           </div>
         <% end %>
