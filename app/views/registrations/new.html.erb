@@ -1,54 +1,58 @@
 <% content_for :title, "Sign up · PitchPredict" %>
 
 <div class="mx-auto mt-4 max-w-md sm:mt-10">
-  <div class="card card-pad">
-    <h1 class="page-title">Join the game</h1>
-    <p class="mt-1 text-sm text-charcoal/60">
-      Predict every World Cup 2026 score, pick your champion and climb the leaderboard.
-    </p>
+  <div class="card bg-base-100 shadow-md rounded-2xl">
+    <div class="card-body">
+      <h1 class="page-title">Join the game</h1>
+      <p class="mt-1 text-sm text-base-content/60">
+        Predict every World Cup 2026 score, pick your champion and climb the leaderboard.
+      </p>
 
-    <%= form_with model: @user, url: registration_path, class: "mt-6 space-y-4" do |form| %>
-      <% if @user.errors.any? %>
-        <div class="rounded-xl bg-red-50 px-4 py-3 text-sm text-red-700 ring-1 ring-red-200" role="alert">
-          <p class="font-semibold"><%= pluralize(@user.errors.count, "error") %> prevented your account from being created:</p>
-          <ul class="mt-1 list-inside list-disc">
-            <% @user.errors.each do |error| %>
-              <li><%= error.full_message %></li>
-            <% end %>
-          </ul>
+      <%= form_with model: @user, url: registration_path, class: "mt-6 space-y-4" do |form| %>
+        <% if @user.errors.any? %>
+          <div class="alert alert-error" role="alert">
+            <div>
+              <p class="font-semibold"><%= pluralize(@user.errors.count, "error") %> prevented your account from being created:</p>
+              <ul class="mt-1 list-inside list-disc">
+                <% @user.errors.each do |error| %>
+                  <li><%= error.full_message %></li>
+                <% end %>
+              </ul>
+            </div>
+          </div>
+        <% end %>
+
+        <div class="form-control">
+          <%= form.label :name, class: "label-text font-medium mb-1" %>
+          <%= form.text_field :name, required: true, autofocus: true, autocomplete: "name",
+                placeholder: "Your name", class: "input input-bordered w-full" %>
         </div>
+
+        <div class="form-control">
+          <%= form.label :email_address, "Email address", class: "label-text font-medium mb-1" %>
+          <%= form.email_field :email_address, required: true, autocomplete: "username",
+                placeholder: "you@example.com", class: "input input-bordered w-full" %>
+        </div>
+
+        <div class="form-control">
+          <%= form.label :password, class: "label-text font-medium mb-1" %>
+          <%= form.password_field :password, required: true, autocomplete: "new-password",
+                placeholder: "Choose a password", maxlength: 72, class: "input input-bordered w-full" %>
+        </div>
+
+        <div class="form-control">
+          <%= form.label :password_confirmation, "Confirm password", class: "label-text font-medium mb-1" %>
+          <%= form.password_field :password_confirmation, required: true, autocomplete: "new-password",
+                placeholder: "Repeat your password", maxlength: 72, class: "input input-bordered w-full" %>
+        </div>
+
+        <%= form.submit "Create account", class: "btn btn-primary w-full" %>
       <% end %>
-
-      <div>
-        <%= form.label :name, class: "field-label" %>
-        <%= form.text_field :name, required: true, autofocus: true, autocomplete: "name",
-              placeholder: "Your name", class: "field" %>
-      </div>
-
-      <div>
-        <%= form.label :email_address, "Email address", class: "field-label" %>
-        <%= form.email_field :email_address, required: true, autocomplete: "username",
-              placeholder: "you@example.com", class: "field" %>
-      </div>
-
-      <div>
-        <%= form.label :password, class: "field-label" %>
-        <%= form.password_field :password, required: true, autocomplete: "new-password",
-              placeholder: "Choose a password", maxlength: 72, class: "field" %>
-      </div>
-
-      <div>
-        <%= form.label :password_confirmation, "Confirm password", class: "field-label" %>
-        <%= form.password_field :password_confirmation, required: true, autocomplete: "new-password",
-              placeholder: "Repeat your password", maxlength: 72, class: "field" %>
-      </div>
-
-      <%= form.submit "Create account", class: "btn-primary w-full" %>
-    <% end %>
+    </div>
   </div>
 
-  <p class="mt-4 text-center text-sm text-charcoal/60">
+  <p class="mt-4 text-center text-sm text-base-content/60">
     Already have an account?
-    <%= link_to "Sign in", new_session_path, class: "font-semibold text-pitch hover:text-pitch-dark" %>
+    <%= link_to "Sign in", new_session_path, class: "link link-primary font-semibold no-underline" %>
   </p>
 </div>

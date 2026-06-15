@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-theme="pitchpredict">
   <head>
     <title><%= content_for(:title) || "PitchPredict" %></title>
     <meta name="viewport" content="width=device-width,initial-scale=1">
@@ -34,42 +34,65 @@
     <%= javascript_importmap_tags %>
   </head>
 
-  <body class="min-h-screen bg-surface text-charcoal antialiased">
-    <header class="sticky top-0 z-50 hero-gradient shadow-card">
-      <nav class="mx-auto flex max-w-5xl items-center gap-1 px-4 py-2 sm:gap-2 sm:px-6">
-        <%= link_to root_path, class: "mr-2 flex shrink-0 items-center gap-2" do %>
-          <%= image_tag "icon.svg", alt: "PitchPredict", class: "h-9 w-9 rounded-xl shadow-card" %>
-          <span class="hidden text-lg font-bold tracking-tight text-white sm:inline">PitchPredict</span>
-        <% end %>
-
-        <% if authenticated? %>
-          <%= link_to "Dashboard", root_path, class: current_page?(root_path) ? "nav-link-active" : "nav-link" %>
-          <%= link_to "Predictions", predictions_path, class: current_page?(predictions_path) ? "nav-link-active" : "nav-link" %>
-          <%= link_to "Leaderboard", leaderboard_path, class: current_page?(leaderboard_path) ? "nav-link-active" : "nav-link" %>
-          <% if Current.user&.admin? %>
-            <%= link_to "Admin", admin_fixtures_path, class: request.path.start_with?("/admin") ? "nav-link-active" : "nav-link" %>
+  <body class="min-h-screen bg-base-200 text-base-content antialiased">
+    <header class="sticky top-0 z-50 hero-gradient text-primary-content shadow-md">
+      <div class="navbar mx-auto max-w-5xl px-4 sm:px-6">
+        <div class="navbar-start gap-1">
+          <% if authenticated? %>
+            <%# Mobile hamburger: collapses the nav links into a dropdown menu. %>
+            <div class="dropdown lg:hidden">
+              <div tabindex="0" role="button" class="btn btn-ghost btn-square text-primary-content" aria-label="Open navigation menu">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" />
+                </svg>
+              </div>
+              <ul tabindex="0" class="menu dropdown-content z-50 mt-3 w-52 rounded-box bg-base-100 p-2 text-base-content shadow">
+                <li><%= link_to "Dashboard", root_path, class: ("font-semibold text-primary" if current_page?(root_path)) %></li>
+                <li><%= link_to "Predictions", predictions_path, class: ("font-semibold text-primary" if current_page?(predictions_path)) %></li>
+                <li><%= link_to "Leaderboard", leaderboard_path, class: ("font-semibold text-primary" if current_page?(leaderboard_path)) %></li>
+                <% if Current.user&.admin? %>
+                  <li><%= link_to "Admin", admin_fixtures_path, class: ("font-semibold text-primary" if request.path.start_with?("/admin")) %></li>
+                <% end %>
+              </ul>
+            </div>
           <% end %>
 
-          <div class="ml-auto flex items-center gap-2">
-            <span class="hidden text-sm font-medium text-white/80 md:inline"><%= Current.user&.name %></span>
+          <%= link_to root_path, class: "btn btn-ghost flex shrink-0 items-center gap-2 px-2 text-primary-content hover:bg-white/10" do %>
+            <%= image_tag "icon.svg", alt: "PitchPredict", class: "h-9 w-9 rounded-xl shadow-md" %>
+            <span class="hidden text-lg font-bold tracking-tight sm:inline">PitchPredict</span>
+          <% end %>
+
+          <% if authenticated? %>
+            <ul class="menu menu-horizontal hidden gap-1 px-1 lg:flex">
+              <li><%= link_to "Dashboard", root_path, class: "text-primary-content/90 hover:bg-white/10 hover:text-primary-content #{'bg-white/15 font-semibold text-primary-content' if current_page?(root_path)}" %></li>
+              <li><%= link_to "Predictions", predictions_path, class: "text-primary-content/90 hover:bg-white/10 hover:text-primary-content #{'bg-white/15 font-semibold text-primary-content' if current_page?(predictions_path)}" %></li>
+              <li><%= link_to "Leaderboard", leaderboard_path, class: "text-primary-content/90 hover:bg-white/10 hover:text-primary-content #{'bg-white/15 font-semibold text-primary-content' if current_page?(leaderboard_path)}" %></li>
+              <% if Current.user&.admin? %>
+                <li><%= link_to "Admin", admin_fixtures_path, class: "text-primary-content/90 hover:bg-white/10 hover:text-primary-content #{'bg-white/15 font-semibold text-primary-content' if request.path.start_with?('/admin')}" %></li>
+              <% end %>
+            </ul>
+          <% end %>
+        </div>
+
+        <div class="navbar-end gap-2">
+          <% if authenticated? %>
+            <span class="hidden text-sm font-medium text-primary-content/80 md:inline"><%= Current.user&.name %></span>
             <%= button_to "Sign out", session_path, method: :delete,
-                  class: "rounded-lg px-3 py-2 text-sm font-medium text-white/80 hover:bg-white/10 hover:text-white transition-colors cursor-pointer" %>
-          </div>
-        <% else %>
-          <div class="ml-auto flex items-center gap-2">
-            <%= link_to "Sign in", new_session_path, class: "nav-link" %>
-            <%= link_to "Sign up", new_registration_path, class: "rounded-lg bg-gold px-3 py-2 text-sm font-semibold text-charcoal hover:bg-gold-dark hover:text-white transition-colors" %>
-          </div>
-        <% end %>
-      </nav>
+                  class: "btn btn-ghost btn-sm text-primary-content/90 hover:bg-white/10 hover:text-primary-content" %>
+          <% else %>
+            <%= link_to "Sign in", new_session_path, class: "btn btn-ghost btn-sm text-primary-content/90 hover:bg-white/10 hover:text-primary-content" %>
+            <%= link_to "Sign up", new_registration_path, class: "btn btn-secondary btn-sm" %>
+          <% end %>
+        </div>
+      </div>
     </header>
 
     <% if flash.any? %>
       <div class="mx-auto mt-4 max-w-5xl space-y-2 px-4 sm:px-6">
         <% flash.each do |type, message| %>
           <%# Errors must interrupt screen readers (role=alert); notices stay polite. %>
-          <div class="<%= type.to_s == "alert" ? "flash-alert" : "flash-notice" %>" role="<%= type.to_s == "alert" ? "alert" : "status" %>">
-            <%= message %>
+          <div class="alert <%= type.to_s == "alert" ? "alert-error" : "alert-success" %>" role="<%= type.to_s == "alert" ? "alert" : "status" %>">
+            <span><%= message %></span>
           </div>
         <% end %>
       </div>

@@ -1,25 +1,27 @@
 <% content_for :title, "Reset password · PitchPredict" %>
 
 <div class="mx-auto mt-4 max-w-md sm:mt-10">
-  <div class="card card-pad">
-    <h1 class="page-title">Forgot your password?</h1>
-    <p class="mt-1 text-sm text-charcoal/60">
-      No worries — enter your email and we'll send you a link to set a new one.
-    </p>
+  <div class="card bg-base-100 shadow-md rounded-2xl">
+    <div class="card-body">
+      <h1 class="page-title">Forgot your password?</h1>
+      <p class="mt-1 text-sm text-base-content/60">
+        No worries — enter your email and we'll send you a link to set a new one.
+      </p>
 
-    <%= form_with url: passwords_path, class: "mt-6 space-y-4" do |form| %>
-      <div>
-        <%= form.label :email_address, "Email address", class: "field-label" %>
-        <%= form.email_field :email_address, required: true, autofocus: true, autocomplete: "username",
-              placeholder: "you@example.com", value: params[:email_address], class: "field" %>
-      </div>
+      <%= form_with url: passwords_path, class: "mt-6 space-y-4" do |form| %>
+        <div class="form-control">
+          <%= form.label :email_address, "Email address", class: "label-text font-medium mb-1" %>
+          <%= form.email_field :email_address, required: true, autofocus: true, autocomplete: "username",
+                placeholder: "you@example.com", value: params[:email_address], class: "input input-bordered w-full" %>
+        </div>
 
-      <%= form.submit "Email reset instructions", class: "btn-primary w-full" %>
-    <% end %>
+        <%= form.submit "Email reset instructions", class: "btn btn-primary w-full" %>
+      <% end %>
+    </div>
   </div>
 
-  <p class="mt-4 text-center text-sm text-charcoal/60">
+  <p class="mt-4 text-center text-sm text-base-content/60">
     Remembered it after all?
-    <%= link_to "Back to sign in", new_session_path, class: "font-semibold text-pitch hover:text-pitch-dark" %>
+    <%= link_to "Back to sign in", new_session_path, class: "link link-primary font-semibold no-underline" %>
   </p>
 </div>

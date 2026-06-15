@@ -3,32 +3,34 @@
 <%# NOTE: flash messages are rendered by the application layout above <main>,
     so the auth views don't repeat them. %>
 <div class="mx-auto mt-4 max-w-md sm:mt-10">
-  <div class="card card-pad">
-    <h1 class="page-title">Welcome back</h1>
-    <p class="mt-1 text-sm text-charcoal/60">Sign in to lock in your World Cup 2026 predictions.</p>
+  <div class="card bg-base-100 shadow-md rounded-2xl">
+    <div class="card-body">
+      <h1 class="page-title">Welcome back</h1>
+      <p class="mt-1 text-sm text-base-content/60">Sign in to lock in your World Cup 2026 predictions.</p>
 
-    <%= form_with url: session_path, class: "mt-6 space-y-4" do |form| %>
-      <div>
-        <%= form.label :email_address, "Email address", class: "field-label" %>
-        <%= form.email_field :email_address, required: true, autofocus: true, autocomplete: "username",
-              placeholder: "you@example.com", value: params[:email_address], class: "field" %>
-      </div>
-
-      <div>
-        <div class="mb-1 flex items-center justify-between">
-          <%= form.label :password, class: "field-label mb-0" %>
-          <%= link_to "Forgot password?", new_password_path, class: "text-sm font-medium text-pitch hover:text-pitch-dark" %>
+      <%= form_with url: session_path, class: "mt-6 space-y-4" do |form| %>
+        <div class="form-control">
+          <%= form.label :email_address, "Email address", class: "label-text font-medium mb-1" %>
+          <%= form.email_field :email_address, required: true, autofocus: true, autocomplete: "username",
+                placeholder: "you@example.com", value: params[:email_address], class: "input input-bordered w-full" %>
         </div>
-        <%= form.password_field :password, required: true, autocomplete: "current-password",
-              placeholder: "Your password", maxlength: 72, class: "field" %>
-      </div>
 
-      <%= form.submit "Sign in", class: "btn-primary w-full" %>
-    <% end %>
+        <div class="form-control">
+          <div class="mb-1 flex items-center justify-between">
+            <%= form.label :password, class: "label-text font-medium" %>
+            <%= link_to "Forgot password?", new_password_path, class: "link link-primary text-sm font-medium no-underline" %>
+          </div>
+          <%= form.password_field :password, required: true, autocomplete: "current-password",
+                placeholder: "Your password", maxlength: 72, class: "input input-bordered w-full" %>
+        </div>
+
+        <%= form.submit "Sign in", class: "btn btn-primary w-full" %>
+      <% end %>
+    </div>
   </div>
 
-  <p class="mt-4 text-center text-sm text-charcoal/60">
+  <p class="mt-4 text-center text-sm text-base-content/60">
     New to PitchPredict?
-    <%= link_to "Create a free account", new_registration_path, class: "font-semibold text-pitch hover:text-pitch-dark" %>
+    <%= link_to "Create a free account", new_registration_path, class: "link link-primary font-semibold no-underline" %>
   </p>
 </div>
