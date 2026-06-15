@@ -91,11 +91,11 @@ Turbo Frame card; `Admin::FixturesController` records results and enqueues
   (`app/controllers/concerns/authentication.rb`); signup added on top in
   `RegistrationsController`.
 - **SQLite locally, Postgres in production** – SQLite backs development and
-  test; production runs on a single managed PostgreSQL database (Supabase) read
+  test; production runs on a single managed PostgreSQL database (Neon) read
   from `DATABASE_URL` (`config/database.yml`). The whole Solid stack (Queue,
   Cache, Cable) lives on the **primary** connection in every environment for
   full dev/prod parity — their tables are created as ordinary migrations in
-  `db/migrate`, not separate databases. See *Deploying to Render + Supabase*
+  `db/migrate`, not separate databases. See *Deploying to Render + Neon*
   below.
 - **Solid Queue** – background jobs (`ScoreFixtureJob`) without Redis; runs
   inside Puma via the `plugin :solid_queue` line in `config/puma.rb`.
