@@ -41,7 +41,7 @@
           <% rows.each do |row| %>
             <% mine = viewer.present? && row.user.id == viewer.id %>
             <% medal = { 1 => "🥇", 2 => "🥈", 3 => "🥉" }[row.rank] %>
-            <tr data-user-id="<%= row.user.id %>" data-current-user="<%= mine %>" class="<%= "bg-primary/10" if mine %>">
+            <tr data-user-id="<%= row.user.id %>" data-current-user="<%= mine %>" class="<%= "bg-pitch/5" if mine %>">
               <td>
                 <% if medal %>
                   <span class="text-lg leading-none" title="Rank <%= row.rank %>"><%= medal %></span>
