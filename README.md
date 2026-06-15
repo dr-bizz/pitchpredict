@@ -90,9 +90,13 @@ Turbo Frame card; `Admin::FixturesController` records results and enqueues
   sessions, password resets, and the `Authentication` concern
   (`app/controllers/concerns/authentication.rb`); signup added on top in
   `RegistrationsController`.
-- **SQLite everywhere** – SQLite is the database in development, test, *and*
-  production (`config/database.yml`), with separate databases for the app,
-  cache, queue, and cable.
+- **SQLite locally, Postgres in production** – SQLite backs development and
+  test; production runs on a single managed PostgreSQL database (Supabase) read
+  from `DATABASE_URL` (`config/database.yml`). The whole Solid stack (Queue,
+  Cache, Cable) lives on the **primary** connection in every environment for
+  full dev/prod parity — their tables are created as ordinary migrations in
+  `db/migrate`, not separate databases. See *Deploying to Render + Supabase*
+  below.
 - **Solid Queue** – background jobs (`ScoreFixtureJob`) without Redis; runs
   inside Puma via the `plugin :solid_queue` line in `config/puma.rb`.
 - **Solid Cache** – database-backed Rails cache (`config/cache.yml`); the
@@ -126,3 +130,58 @@ final July 19 at MetLife Stadium) so that "today" falls mid-tournament. Every
 fixture whose kickoff has passed is seeded as finished and scored; the rest are
 open for predictions. Seeds are deterministic (`Random.new(2026)`), so a replant
 rebuilds the exact same world.
+
+## Deploying to Render + Supabase
+
+Production runs as a single Render free web service backed by a single Supabase
+Postgres database. Local development and test stay on SQLite.
+
+### 1. Create the Supabase database
+
+1. Create a new project at [supabase.com](https://supabase.com).
+2. In **Project Settings → Database → Connection string**, copy the
+   **Session pooler** string. It looks like:
+
+   ```
+   postgresql://postgres.<project-ref>:<password>@aws-0-<region>.pooler.supabase.com:5432/postgres
+   ```
+
+   Use the **Session pooler** (host `...pooler.supabase.com`, port `5432`, user
+   `postgres.<project-ref>`) — it is IPv4-friendly and works from Render. This
+   string is your `DATABASE_URL`.
+
+### 2. Deploy to Render via the blueprint
+
+1. In the Render dashboard choose **New + → Blueprint** and point it at this
+   repository. Render reads [`render.yaml`](render.yaml) and provisions the
+   `pitchpredict` web service (free plan, native Ruby runtime, `/up` health
+   check, `bin/render-build.sh` as the build command).
+2. When prompted, set the two secret environment variables (both are
+   `sync: false` in the blueprint, so Render asks for them):
+   - `RAILS_MASTER_KEY` — the contents of `config/master.key`.
+   - `DATABASE_URL` — the Supabase Session pooler string from step 1.
+3. On the first deploy `bin/render-build.sh` runs `rails db:prepare`, which
+   loads the schema and **seeds the database**, so the app comes up populated.
+
+### 3. Free-tier behaviour to expect
+
+- The Render free web service **spins down after ~15 minutes idle**; the next
+  request triggers a cold start (a few seconds).
+- A Supabase free project **pauses after ~7 days of inactivity** and must be
+  resumed from the dashboard.
+- Solid Queue runs **inside Puma** (`SOLID_QUEUE_IN_PUMA=true`), so background
+  jobs only process while the web service is awake. That is fine here: scores
+  are entered live by an admin, so the scoring job runs in the same request
+  window the admin is active.
+
+### ⚠️ Security: rotate the demo credentials before sharing publicly
+
+The seeds create demo accounts (including an **admin**) with the well-known
+password `worldcup2026`, and `db:prepare` seeds them on the first deploy. Before
+exposing the app publicly you **must**:
+
+- change the admin password (and ideally the admin email), and
+- remove or disable the demo users.
+
+Otherwise anyone who knows the seed password can log in as admin and edit
+results.
