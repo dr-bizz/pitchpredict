@@ -12,7 +12,7 @@
         <div class="form-control">
           <%= form.label :email_address, "Email address", class: "label-text font-medium mb-1" %>
           <%= form.email_field :email_address, required: true, autofocus: true, autocomplete: "username",
-                placeholder: "you@example.com", value: params[:email_address], class: "input input-bordered w-full" %>
+                placeholder: "you@example.com", value: params[:email_address], class: "input w-full" %>
         </div>
 
         <%= form.submit "Email reset instructions", class: "btn btn-primary w-full" %>

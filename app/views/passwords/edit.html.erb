@@ -12,13 +12,13 @@
         <div class="form-control">
           <%= form.label :password, "New password", class: "label-text font-medium mb-1" %>
           <%= form.password_field :password, required: true, autofocus: true, autocomplete: "new-password",
-                placeholder: "Enter new password", maxlength: 72, class: "input input-bordered w-full" %>
+                placeholder: "Enter new password", maxlength: 72, class: "input w-full" %>
         </div>
 
         <div class="form-control">
           <%= form.label :password_confirmation, "Confirm new password", class: "label-text font-medium mb-1" %>
           <%= form.password_field :password_confirmation, required: true, autocomplete: "new-password",
-                placeholder: "Repeat new password", maxlength: 72, class: "input input-bordered w-full" %>
+                placeholder: "Repeat new password", maxlength: 72, class: "input w-full" %>
         </div>
 
         <%= form.submit "Save new password", class: "btn btn-primary w-full" %>

@@ -12,7 +12,7 @@
         <div class="form-control">
           <%= form.label :email_address, "Email address", class: "label-text font-medium mb-1" %>
           <%= form.email_field :email_address, required: true, autofocus: true, autocomplete: "username",
-                placeholder: "you@example.com", value: params[:email_address], class: "input input-bordered w-full" %>
+                placeholder: "you@example.com", value: params[:email_address], class: "input w-full" %>
         </div>
 
         <div class="form-control">
@@ -21,7 +21,7 @@
             <%= link_to "Forgot password?", new_password_path, class: "link link-primary text-sm font-medium no-underline" %>
           </div>
           <%= form.password_field :password, required: true, autocomplete: "current-password",
-                placeholder: "Your password", maxlength: 72, class: "input input-bordered w-full" %>
+                placeholder: "Your password", maxlength: 72, class: "input w-full" %>
         </div>
 
         <%= form.submit "Sign in", class: "btn btn-primary w-full" %>

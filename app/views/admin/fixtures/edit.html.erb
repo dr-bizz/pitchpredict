@@ -50,12 +50,12 @@
           <div class="form-control">
             <%= form.label :home_score, "#{@fixture.home_team.name} (#{@fixture.home_team.code})", class: "label label-text" %>
             <%= form.number_field :home_score, min: 0, step: 1, required: true, inputmode: "numeric",
-                  placeholder: "0", class: "input input-bordered text-center text-lg font-bold tabular-nums" %>
+                  placeholder: "0", class: "input text-center text-lg font-bold tabular-nums" %>
           </div>
           <div class="form-control">
             <%= form.label :away_score, "#{@fixture.away_team.name} (#{@fixture.away_team.code})", class: "label label-text" %>
             <%= form.number_field :away_score, min: 0, step: 1, required: true, inputmode: "numeric",
-                  placeholder: "0", class: "input input-bordered text-center text-lg font-bold tabular-nums" %>
+                  placeholder: "0", class: "input text-center text-lg font-bold tabular-nums" %>
           </div>
         </div>
 
