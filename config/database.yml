@@ -1,57 +1,30 @@
-# SQLite. Versions 3.8.0 and up are supported.
-#   gem install sqlite3
-#
-#   Ensure the SQLite 3 gem is defined in your Gemfile
-#   gem "sqlite3"
-#
-default: &default
+# SQLite is used for local development and test. Production runs on a single
+# PostgreSQL database (Supabase) configured via DATABASE_URL. The whole Solid
+# stack (Queue/Cache/Cable) lives on the primary connection in every
+# environment for full dev/prod parity — see db/migrate for their tables.
+sqlite: &sqlite
   adapter: sqlite3
   max_connections: <%= ENV.fetch("RAILS_MAX_THREADS") { 5 } %>
   timeout: 5000
 
-# NOTE: Development mirrors production's multi-database layout so Solid
-# Queue/Cache/Cable are DB-backed in dev too (Rails 8 only wires this for
-# production by default). Schema dumps follow Rails conventions:
-# db/cache_schema.rb, db/queue_schema.rb, db/cable_schema.rb.
 development:
   primary:
-    <<: *default
+    <<: *sqlite
     database: storage/development.sqlite3
-  cache:
-    <<: *default
-    database: storage/development_cache.sqlite3
-    migrations_paths: db/cache_migrate
-  queue:
-    <<: *default
-    database: storage/development_queue.sqlite3
-    migrations_paths: db/queue_migrate
-  cable:
-    <<: *default
-    database: storage/development_cable.sqlite3
-    migrations_paths: db/cable_migrate
 
 # Warning: The database defined as "test" will be erased and
 # re-generated from your development database when you run "rake".
 # Do not set this db to the same as development or production.
 test:
-  <<: *default
+  <<: *sqlite
   database: storage/test.sqlite3
 
-# Store production database in the storage/ directory, which by default
-# is mounted as a persistent Docker volume in config/deploy.yml.
+# Production: a single Postgres database read from DATABASE_URL (the Supabase
+# session-pooler connection string). prepared_statements: false keeps the app
+# safe across Supabase's transaction/session pooler modes.
 production:
   primary:
-    <<: *default
-    database: storage/production.sqlite3
-  cache:
-    <<: *default
-    database: storage/production_cache.sqlite3
-    migrations_paths: db/cache_migrate
-  queue:
-    <<: *default
-    database: storage/production_queue.sqlite3
-    migrations_paths: db/queue_migrate
-  cable:
-    <<: *default
-    database: storage/production_cable.sqlite3
-    migrations_paths: db/cable_migrate
+    adapter: postgresql
+    url: <%= ENV["DATABASE_URL"] %>
+    prepared_statements: false
+    pool: <%= ENV.fetch("RAILS_MAX_THREADS") { 5 } %>
