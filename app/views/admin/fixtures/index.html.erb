@@ -1,92 +1,103 @@
 <% content_for :title, "Admin · Fixtures · PitchPredict" %>
 
-<nav class="mb-4 text-sm text-charcoal/60" aria-label="Breadcrumb">
-  <%= link_to "Admin", admin_fixtures_path, class: "font-medium text-pitch hover:text-pitch-dark" %>
-  <span class="mx-1">/</span>
-  <span>Fixtures</span>
-</nav>
+<% status_badge = ->(status) {
+     case status.to_s
+     when "live" then "badge badge-error"
+     when "finished" then "badge badge-success"
+     else "badge badge-ghost"
+     end
+   } %>
+
+<div class="breadcrumbs mb-4 text-sm">
+  <ul>
+    <li><%= link_to "Admin", admin_fixtures_path %></li>
+    <li>Fixtures</li>
+  </ul>
+</div>
 
 <div class="mb-6 flex flex-wrap items-end justify-between gap-4">
   <div>
     <h1 class="page-title">Match results</h1>
-    <p class="mt-1 text-sm text-charcoal/60">
+    <p class="mt-1 text-sm text-base-content/60">
       Enter a final score to finish a fixture — predictions are rescored and the leaderboard updates live.
     </p>
   </div>
 
   <%= form_with url: admin_fixtures_path, method: :get, class: "flex flex-wrap items-end gap-2" do |form| %>
-    <div>
-      <%= form.label :stage, "Stage", class: "field-label" %>
+    <div class="form-control">
+      <%= form.label :stage, "Stage", class: "label label-text" %>
       <%= form.select :stage,
             options_for_select(Fixture.stages.keys.map { |s| [ stage_label(s), s ] }, @stage),
             { include_blank: "All stages" },
-            class: "field w-44" %>
+            class: "select select-bordered w-44" %>
     </div>
-    <div>
-      <%= form.label :status, "Status", class: "field-label" %>
+    <div class="form-control">
+      <%= form.label :status, "Status", class: "label label-text" %>
       <%= form.select :status,
             options_for_select(Fixture.statuses.keys.map { |s| [ s.humanize, s ] }, @status),
             { include_blank: "All statuses" },
-            class: "field w-40" %>
+            class: "select select-bordered w-40" %>
     </div>
-    <%= form.submit "Filter", class: "btn-ghost ring-1 ring-charcoal/15" %>
+    <%= form.submit "Filter", class: "btn btn-ghost" %>
     <% if @stage || @status %>
-      <%= link_to "Clear", admin_fixtures_path, class: "btn-ghost" %>
+      <%= link_to "Clear", admin_fixtures_path, class: "btn btn-ghost" %>
     <% end %>
   <% end %>
 </div>
 
-<div class="card overflow-hidden">
-  <% if @fixtures.any? %>
-    <div class="overflow-x-auto">
-      <table class="w-full text-left text-sm">
-        <thead>
-          <tr class="border-b border-charcoal/10 bg-surface text-xs uppercase tracking-wider text-charcoal/60">
-            <th class="px-4 py-3 font-semibold">Match</th>
-            <th class="px-4 py-3 font-semibold">Kickoff</th>
-            <th class="px-4 py-3 font-semibold">Stage</th>
-            <th class="px-4 py-3 font-semibold">Status</th>
-            <th class="px-4 py-3 text-center font-semibold">Score</th>
-            <th class="px-4 py-3"><span class="sr-only">Actions</span></th>
-          </tr>
-        </thead>
-        <tbody class="divide-y divide-charcoal/5">
-          <% @fixtures.each do |fixture| %>
-            <tr class="hover:bg-surface/60">
-              <td class="px-4 py-3">
-                <div class="font-semibold text-charcoal">
-                  <%= fixture.home_team.name %>
-                  <span class="font-normal text-charcoal/40">vs</span>
-                  <%= fixture.away_team.name %>
-                </div>
-                <div class="text-xs text-charcoal/50"><%= fixture.stadium.name %>, <%= fixture.stadium.city %></div>
-              </td>
-              <td class="px-4 py-3 whitespace-nowrap text-charcoal/70">
-                <%= kickoff_label(fixture) %>
-              </td>
-              <td class="px-4 py-3"><span class="pill-muted"><%= stage_label(fixture.stage) %></span></td>
-              <td class="px-4 py-3"><span class="<%= status_pill_class(fixture.status) %>"><%= fixture.status.humanize %></span></td>
-              <td class="px-4 py-3 text-center font-bold tabular-nums">
-                <% if fixture.home_score && fixture.away_score %>
-                  <%= fixture.home_score %>–<%= fixture.away_score %>
-                <% else %>
-                  <span class="font-normal text-charcoal/30">—</span>
-                <% end %>
-              </td>
-              <td class="px-4 py-3 text-right whitespace-nowrap">
-                <%= link_to(fixture.finished? ? "Edit result" : "Enter result",
-                      edit_admin_fixture_path(fixture),
-                      class: fixture.finished? ? "btn-ghost ring-1 ring-charcoal/15" : "btn-primary") %>
-              </td>
+<div class="card bg-base-100 shadow-md rounded-2xl overflow-hidden">
+  <div class="card-body p-0">
+    <% if @fixtures.any? %>
+      <div class="overflow-x-auto">
+        <table class="table">
+          <thead>
+            <tr>
+              <th>Match</th>
+              <th>Kickoff</th>
+              <th>Stage</th>
+              <th>Status</th>
+              <th class="text-center">Score</th>
+              <th><span class="sr-only">Actions</span></th>
             </tr>
-          <% end %>
-        </tbody>
-      </table>
-    </div>
-  <% else %>
-    <div class="card-pad text-center text-sm text-charcoal/60">
-      No fixtures match this filter.
-      <%= link_to "Show all fixtures", admin_fixtures_path, class: "font-medium text-pitch hover:text-pitch-dark" %>
-    </div>
-  <% end %>
+          </thead>
+          <tbody>
+            <% @fixtures.each do |fixture| %>
+              <tr class="hover">
+                <td>
+                  <div class="font-semibold">
+                    <%= fixture.home_team.name %>
+                    <span class="font-normal text-base-content/40">vs</span>
+                    <%= fixture.away_team.name %>
+                  </div>
+                  <div class="text-xs text-base-content/50"><%= fixture.stadium.name %>, <%= fixture.stadium.city %></div>
+                </td>
+                <td class="whitespace-nowrap text-base-content/70">
+                  <%= kickoff_label(fixture) %>
+                </td>
+                <td><span class="badge badge-ghost"><%= stage_label(fixture.stage) %></span></td>
+                <td><span class="<%= status_badge.call(fixture.status) %>"><%= fixture.status.humanize %></span></td>
+                <td class="text-center font-bold tabular-nums">
+                  <% if fixture.home_score && fixture.away_score %>
+                    <%= fixture.home_score %>–<%= fixture.away_score %>
+                  <% else %>
+                    <span class="font-normal text-base-content/30">—</span>
+                  <% end %>
+                </td>
+                <td class="text-right whitespace-nowrap">
+                  <%= link_to(fixture.finished? ? "Edit result" : "Enter result",
+                        edit_admin_fixture_path(fixture),
+                        class: fixture.finished? ? "btn btn-ghost btn-sm" : "btn btn-primary btn-sm") %>
+                </td>
+              </tr>
+            <% end %>
+          </tbody>
+        </table>
+      </div>
+    <% else %>
+      <div class="p-6 text-center text-sm text-base-content/60">
+        No fixtures match this filter.
+        <%= link_to "Show all fixtures", admin_fixtures_path, class: "link link-primary font-medium" %>
+      </div>
+    <% end %>
+  </div>
 </div>

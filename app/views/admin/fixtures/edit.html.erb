@@ -1,62 +1,76 @@
 <% content_for :title, "Admin · Enter result · PitchPredict" %>
 
-<nav class="mb-4 text-sm text-charcoal/60" aria-label="Breadcrumb">
-  <%= link_to "Admin", admin_fixtures_path, class: "font-medium text-pitch hover:text-pitch-dark" %>
-  <span class="mx-1">/</span>
-  <%= link_to "Fixtures", admin_fixtures_path, class: "font-medium text-pitch hover:text-pitch-dark" %>
-  <span class="mx-1">/</span>
-  <span><%= @fixture.home_team.code %> vs <%= @fixture.away_team.code %></span>
-</nav>
+<% status_badge = ->(status) {
+     case status.to_s
+     when "live" then "badge badge-error"
+     when "finished" then "badge badge-success"
+     else "badge badge-ghost"
+     end
+   } %>
+
+<div class="breadcrumbs mb-4 text-sm">
+  <ul>
+    <li><%= link_to "Admin", admin_fixtures_path %></li>
+    <li><%= link_to "Fixtures", admin_fixtures_path %></li>
+    <li><%= @fixture.home_team.code %> vs <%= @fixture.away_team.code %></li>
+  </ul>
+</div>
 
 <div class="mx-auto max-w-xl">
-  <div class="card card-pad">
-    <div class="flex flex-wrap items-center gap-2">
-      <span class="pill-muted"><%= stage_label(@fixture.stage) %></span>
-      <span class="<%= status_pill_class(@fixture.status) %>"><%= @fixture.status.humanize %></span>
-    </div>
-
-    <h1 class="page-title mt-3">
-      <%= @fixture.home_team.name %> <span class="font-normal text-charcoal/40">vs</span> <%= @fixture.away_team.name %>
-    </h1>
-    <p class="mt-1 text-sm text-charcoal/60">
-      <%= kickoff_label(@fixture, style: :long) %> ·
-      <%= @fixture.stadium.name %>, <%= @fixture.stadium.city %>
-    </p>
-
-    <%= form_with model: @fixture, url: admin_fixture_path(@fixture), method: :patch, class: "mt-6" do |form| %>
-      <% if @fixture.errors.any? %>
-        <div class="mb-4 rounded-xl bg-red-50 px-4 py-3 text-sm text-red-700 ring-1 ring-red-200" role="alert">
-          <p class="font-semibold"><%= pluralize(@fixture.errors.count, "problem") %> prevented the result from being saved:</p>
-          <ul class="mt-1 list-inside list-disc">
-            <% @fixture.errors.each do |error| %>
-              <li><%= error.full_message %></li>
-            <% end %>
-          </ul>
-        </div>
-      <% end %>
-
-      <div class="grid grid-cols-2 gap-4">
-        <div>
-          <%= form.label :home_score, "#{@fixture.home_team.name} (#{@fixture.home_team.code})", class: "field-label" %>
-          <%= form.number_field :home_score, min: 0, step: 1, required: true, inputmode: "numeric",
-                placeholder: "0", class: "field text-center text-lg font-bold tabular-nums" %>
-        </div>
-        <div>
-          <%= form.label :away_score, "#{@fixture.away_team.name} (#{@fixture.away_team.code})", class: "field-label" %>
-          <%= form.number_field :away_score, min: 0, step: 1, required: true, inputmode: "numeric",
-                placeholder: "0", class: "field text-center text-lg font-bold tabular-nums" %>
-        </div>
+  <div class="card bg-base-100 shadow-md rounded-2xl">
+    <div class="card-body">
+      <div class="flex flex-wrap items-center gap-2">
+        <span class="badge badge-ghost"><%= stage_label(@fixture.stage) %></span>
+        <span class="<%= status_badge.call(@fixture.status) %>"><%= @fixture.status.humanize %></span>
       </div>
 
-      <p class="mt-4 rounded-xl bg-gold-light px-4 py-3 text-sm text-gold-dark ring-1 ring-gold/30">
-        Saving marks this fixture as <strong>finished</strong>, rescores every prediction
-        and pushes the new standings to the live leaderboard.
+      <h1 class="page-title mt-3">
+        <%= @fixture.home_team.name %> <span class="font-normal text-base-content/40">vs</span> <%= @fixture.away_team.name %>
+      </h1>
+      <p class="mt-1 text-sm text-base-content/60">
+        <%= kickoff_label(@fixture, style: :long) %> ·
+        <%= @fixture.stadium.name %>, <%= @fixture.stadium.city %>
       </p>
 
-      <div class="mt-6 flex items-center gap-3">
-        <%= form.submit @fixture.finished? ? "Update result & rescore" : "Save result & score predictions", class: "btn-primary" %>
-        <%= link_to "Cancel", admin_fixtures_path, class: "btn-ghost" %>
-      </div>
-    <% end %>
+      <%= form_with model: @fixture, url: admin_fixture_path(@fixture), method: :patch, class: "mt-6" do |form| %>
+        <% if @fixture.errors.any? %>
+          <div class="alert alert-error mb-4" role="alert">
+            <div>
+              <p class="font-semibold"><%= pluralize(@fixture.errors.count, "problem") %> prevented the result from being saved:</p>
+              <ul class="mt-1 list-inside list-disc">
+                <% @fixture.errors.each do |error| %>
+                  <li><%= error.full_message %></li>
+                <% end %>
+              </ul>
+            </div>
+          </div>
+        <% end %>
+
+        <div class="grid grid-cols-2 gap-4">
+          <div class="form-control">
+            <%= form.label :home_score, "#{@fixture.home_team.name} (#{@fixture.home_team.code})", class: "label label-text" %>
+            <%= form.number_field :home_score, min: 0, step: 1, required: true, inputmode: "numeric",
+                  placeholder: "0", class: "input input-bordered text-center text-lg font-bold tabular-nums" %>
+          </div>
+          <div class="form-control">
+            <%= form.label :away_score, "#{@fixture.away_team.name} (#{@fixture.away_team.code})", class: "label label-text" %>
+            <%= form.number_field :away_score, min: 0, step: 1, required: true, inputmode: "numeric",
+                  placeholder: "0", class: "input input-bordered text-center text-lg font-bold tabular-nums" %>
+          </div>
+        </div>
+
+        <div class="alert alert-warning mt-4">
+          <span>
+            Saving marks this fixture as <strong>finished</strong>, rescores every prediction
+            and pushes the new standings to the live leaderboard.
+          </span>
+        </div>
+
+        <div class="mt-6 flex items-center gap-3">
+          <%= form.submit @fixture.finished? ? "Update result & rescore" : "Save result & score predictions", class: "btn btn-primary" %>
+          <%= link_to "Cancel", admin_fixtures_path, class: "btn btn-ghost" %>
+        </div>
+      <% end %>
+    </div>
   </div>
 </div>

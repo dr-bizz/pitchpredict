@@ -8,17 +8,20 @@
     </p>
   </header>
 
-  <nav class="flex flex-wrap gap-2" aria-label="Tournament stages">
+  <nav role="tablist" class="tabs tabs-boxed flex-wrap gap-1 bg-base-200 p-1" aria-label="Tournament stages">
     <% FixturesHelper::STAGE_TABS.each do |stage, label| %>
       <%= link_to label, predictions_path(stage: stage),
-                  class: stage_tab_classes(stage == @stage),
+                  role: "tab",
+                  class: "tab #{'tab-active' if stage == @stage}",
                   aria: { current: stage == @stage ? "page" : nil } %>
     <% end %>
   </nav>
 
   <% if @fixtures.empty? %>
-    <div class="card card-pad text-center text-sm text-charcoal/60">
-      No fixtures scheduled for this stage yet. Check back once the bracket is set.
+    <div class="card bg-base-100 shadow-md rounded-2xl">
+      <div class="card-body items-center text-center text-sm text-base-content/60">
+        No fixtures scheduled for this stage yet. Check back once the bracket is set.
+      </div>
     </div>
   <% elsif @grouped %>
     <% @grouped.each do |group_name, fixtures| %>
