@@ -1,0 +1,21 @@
+services:
+  - type: web
+    name: pitchpredict
+    runtime: ruby
+    plan: free
+    buildCommand: "./bin/render-build.sh"
+    startCommand: "bundle exec rails server"
+    healthCheckPath: /up
+    envVars:
+      - key: RAILS_MASTER_KEY
+        sync: false
+      - key: DATABASE_URL
+        sync: false
+      - key: RAILS_ENV
+        value: production
+      - key: RAILS_MAX_THREADS
+        value: "3"
+      - key: SOLID_QUEUE_IN_PUMA
+        value: "true"
+      - key: WEB_CONCURRENCY
+        value: "1"
