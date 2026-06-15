@@ -160,8 +160,14 @@ Postgres database. Local development and test stay on SQLite.
    `sync: false` in the blueprint, so Render asks for them):
    - `RAILS_MASTER_KEY` — the contents of `config/master.key`.
    - `DATABASE_URL` — the Supabase Session pooler string from step 1.
-3. On the first deploy `bin/render-build.sh` runs `rails db:prepare`, which
-   loads the schema and **seeds the database**, so the app comes up populated.
+3. Optionally set your admin login (recommended), also as Render env vars:
+   - `ADMIN_EMAIL` — defaults to `admin@pitchpredict.app`.
+   - `ADMIN_PASSWORD` — if omitted, a random password is generated and printed
+     **once** in the deploy logs (Render → Logs). Set it to choose your own.
+4. On the first deploy `bin/render-build.sh` runs `rails db:prepare`, which
+   loads the schema and seeds **reference data only** in production: all 48
+   teams, the host stadiums, and the full fixture list shifted into the future
+   so every match is open. No demo players are created.
 
 ### 3. Free-tier behaviour to expect
 
@@ -174,14 +180,19 @@ Postgres database. Local development and test stay on SQLite.
   are entered live by an admin, so the scoring job runs in the same request
   window the admin is active.
 
-### ⚠️ Security: rotate the demo credentials before sharing publicly
+### Seed profiles (demo vs production)
 
-The seeds create demo accounts (including an **admin**) with the well-known
-password `worldcup2026`, and `db:prepare` seeds them on the first deploy. Before
-exposing the app publicly you **must**:
+`db/seeds.rb` picks a profile automatically:
 
-- change the admin password (and ideally the admin email), and
-- remove or disable the demo users.
+- **Demo** (development/test, or production with `SEED_DEMO=true`): the full
+  showcase — ~14 players, a spread of predictions and champion picks, and
+  roughly half the group stage already played and scored. The admin and a demo
+  player use the well-known password `worldcup2026`. This is what runs locally.
+- **Production** (default in production): **reference data only** — teams,
+  stadiums, and an all-future fixture list, plus a single admin from
+  `ADMIN_EMAIL` / `ADMIN_PASSWORD`. No demo accounts, no fake results.
 
-Otherwise anyone who knows the seed password can log in as admin and edit
-results.
+So a normal Render deploy does **not** expose the `worldcup2026` accounts. If
+you ever set `SEED_DEMO=true` in production (e.g. for a demo instance), rotate
+the admin password and remove the demo users before sharing the URL — otherwise
+anyone who knows the seed password can log in as admin and edit results.
