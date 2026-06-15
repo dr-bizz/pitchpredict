@@ -30,7 +30,6 @@ Rails.application.configure do
 
   # Use Solid Queue (DB-backed) in development to match production behavior.
   config.active_job.queue_adapter = :solid_queue
-  config.solid_queue.connects_to = { database: { writing: :queue } }
 
   # Store uploaded files on the local file system (see config/storage.yml for options).
   config.active_storage.service = :local

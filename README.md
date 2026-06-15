@@ -90,9 +90,13 @@ Turbo Frame card; `Admin::FixturesController` records results and enqueues
   sessions, password resets, and the `Authentication` concern
   (`app/controllers/concerns/authentication.rb`); signup added on top in
   `RegistrationsController`.
-- **SQLite everywhere** – SQLite is the database in development, test, *and*
-  production (`config/database.yml`), with separate databases for the app,
-  cache, queue, and cable.
+- **SQLite locally, Postgres in production** – SQLite backs development and
+  test; production runs on a single managed PostgreSQL database (Supabase) read
+  from `DATABASE_URL` (`config/database.yml`). The whole Solid stack (Queue,
+  Cache, Cable) lives on the **primary** connection in every environment for
+  full dev/prod parity — their tables are created as ordinary migrations in
+  `db/migrate`, not separate databases. See *Deploying to Render + Supabase*
+  below.
 - **Solid Queue** – background jobs (`ScoreFixtureJob`) without Redis; runs
   inside Puma via the `plugin :solid_queue` line in `config/puma.rb`.
 - **Solid Cache** – database-backed Rails cache (`config/cache.yml`); the
@@ -126,3 +130,69 @@ final July 19 at MetLife Stadium) so that "today" falls mid-tournament. Every
 fixture whose kickoff has passed is seeded as finished and scored; the rest are
 open for predictions. Seeds are deterministic (`Random.new(2026)`), so a replant
 rebuilds the exact same world.
+
+## Deploying to Render + Supabase
+
+Production runs as a single Render free web service backed by a single Supabase
+Postgres database. Local development and test stay on SQLite.
+
+### 1. Create the Supabase database
+
+1. Create a new project at [supabase.com](https://supabase.com).
+2. In **Project Settings → Database → Connection string**, copy the
+   **Session pooler** string. It looks like:
+
+   ```
+   postgresql://postgres.<project-ref>:<password>@aws-0-<region>.pooler.supabase.com:5432/postgres
+   ```
+
+   Use the **Session pooler** (host `...pooler.supabase.com`, port `5432`, user
+   `postgres.<project-ref>`) — it is IPv4-friendly and works from Render. This
+   string is your `DATABASE_URL`.
+
+### 2. Deploy to Render via the blueprint
+
+1. In the Render dashboard choose **New + → Blueprint** and point it at this
+   repository. Render reads [`render.yaml`](render.yaml) and provisions the
+   `pitchpredict` web service (free plan, native Ruby runtime, `/up` health
+   check, `bin/render-build.sh` as the build command).
+2. When prompted, set the two secret environment variables (both are
+   `sync: false` in the blueprint, so Render asks for them):
+   - `RAILS_MASTER_KEY` — the contents of `config/master.key`.
+   - `DATABASE_URL` — the Supabase Session pooler string from step 1.
+3. Optionally set your admin login (recommended), also as Render env vars:
+   - `ADMIN_EMAIL` — defaults to `admin@pitchpredict.app`.
+   - `ADMIN_PASSWORD` — if omitted, a random password is generated and printed
+     **once** in the deploy logs (Render → Logs). Set it to choose your own.
+4. On the first deploy `bin/render-build.sh` runs `rails db:prepare`, which
+   loads the schema and seeds **reference data only** in production: all 48
+   teams, the host stadiums, and the full fixture list shifted into the future
+   so every match is open. No demo players are created.
+
+### 3. Free-tier behaviour to expect
+
+- The Render free web service **spins down after ~15 minutes idle**; the next
+  request triggers a cold start (a few seconds).
+- A Supabase free project **pauses after ~7 days of inactivity** and must be
+  resumed from the dashboard.
+- Solid Queue runs **inside Puma** (`SOLID_QUEUE_IN_PUMA=true`), so background
+  jobs only process while the web service is awake. That is fine here: scores
+  are entered live by an admin, so the scoring job runs in the same request
+  window the admin is active.
+
+### Seed profiles (demo vs production)
+
+`db/seeds.rb` picks a profile automatically:
+
+- **Demo** (development/test, or production with `SEED_DEMO=true`): the full
+  showcase — ~14 players, a spread of predictions and champion picks, and
+  roughly half the group stage already played and scored. The admin and a demo
+  player use the well-known password `worldcup2026`. This is what runs locally.
+- **Production** (default in production): **reference data only** — teams,
+  stadiums, and an all-future fixture list, plus a single admin from
+  `ADMIN_EMAIL` / `ADMIN_PASSWORD`. No demo accounts, no fake results.
+
+So a normal Render deploy does **not** expose the `worldcup2026` accounts. If
+you ever set `SEED_DEMO=true` in production (e.g. for a demo instance), rotate
+the admin password and remove the demo users before sharing the URL — otherwise
+anyone who knows the seed password can log in as admin and edit results.
