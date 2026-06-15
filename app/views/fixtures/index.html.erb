@@ -8,7 +8,7 @@
     </p>
   </header>
 
-  <nav role="tablist" class="tabs tabs-boxed flex-wrap gap-1 bg-base-200 p-1" aria-label="Tournament stages">
+  <nav role="tablist" class="tabs tabs-box flex-wrap gap-1 bg-base-200 p-1" aria-label="Tournament stages">
     <% FixturesHelper::STAGE_TABS.each do |stage, label| %>
       <%= link_to label, predictions_path(stage: stage),
                   role: "tab",
