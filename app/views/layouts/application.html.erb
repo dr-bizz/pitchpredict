@@ -63,7 +63,7 @@
           <% end %>
 
           <% if authenticated? %>
-            <ul class="menu menu-horizontal hidden gap-1 px-1 lg:flex">
+            <ul class="menu menu-horizontal hidden flex-nowrap gap-1 px-1 lg:flex">
               <li><%= link_to "Dashboard", root_path, class: "text-primary-content/90 hover:bg-white/10 hover:text-primary-content #{'bg-white/15 font-semibold text-primary-content' if current_page?(root_path)}" %></li>
               <li><%= link_to "Predictions", predictions_path, class: "text-primary-content/90 hover:bg-white/10 hover:text-primary-content #{'bg-white/15 font-semibold text-primary-content' if current_page?(predictions_path)}" %></li>
               <li><%= link_to "Leaderboard", leaderboard_path, class: "text-primary-content/90 hover:bg-white/10 hover:text-primary-content #{'bg-white/15 font-semibold text-primary-content' if current_page?(leaderboard_path)}" %></li>
