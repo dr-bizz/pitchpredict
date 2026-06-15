@@ -21,7 +21,7 @@ class PredictionsControllerTest < ActionDispatch::IntegrationTest
 
     assert_response :success
     assert_select "turbo-frame#prediction_fixture_#{@open_fixture.id}"
-    assert_select "span.pill-predicted", text: "Predicted"
+    assert_select "span.badge.badge-success", text: "Predicted"
     assert_match "Saved", response.body
 
     prediction = users(:two).predictions.find_by!(fixture: @open_fixture)

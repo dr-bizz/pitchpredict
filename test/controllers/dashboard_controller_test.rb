@@ -16,7 +16,7 @@ class DashboardControllerTest < ActionDispatch::IntegrationTest
 
     assert_response :success
     assert_select "h1", text: /Hello #{@user.name}/
-    assert_select "section", text: /1 of #{Fixture.count}\s+matches predicted/m
+    assert_select "section", text: /Matches predicted\s+1 of #{Fixture.count}/m
     assert_select "a[href=?]", predictions_path, text: /Continue predicting/
     assert_select "a[href=?]", leaderboard_path
     assert_select "h2", text: "Top 5 on the leaderboard"

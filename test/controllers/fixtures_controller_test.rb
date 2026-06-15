@@ -24,7 +24,7 @@ class FixturesControllerTest < ActionDispatch::IntegrationTest
     sign_in_as users(:one)
     get predictions_path
 
-    assert_select "span.pill-predicted", text: "Predicted"
+    assert_select "span.badge.badge-success", text: "Predicted"
     assert_select "input[name='prediction[home_score]'][value='2']"
   end
 
@@ -34,7 +34,7 @@ class FixturesControllerTest < ActionDispatch::IntegrationTest
 
     assert_response :success
     assert_match "2 – 1", response.body
-    assert_select "span.pill-points", text: "+5 pts"
+    assert_select "span.badge.badge-warning", text: "+5 pts"
     assert_select "input[disabled]"
     # A finished fixture renders no form for the locked card.
     assert_select "turbo-frame#prediction_fixture_#{fixtures(:finished_group).id} form", count: 0
@@ -44,7 +44,7 @@ class FixturesControllerTest < ActionDispatch::IntegrationTest
     sign_in_as users(:one)
     get predictions_path
 
-    assert_select "turbo-frame#prediction_fixture_#{fixtures(:finished_group).id} span.pill-muted",
+    assert_select "turbo-frame#prediction_fixture_#{fixtures(:finished_group).id} span.badge.badge-ghost",
                   text: "No prediction"
   end
 
