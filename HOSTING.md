@@ -1,44 +1,46 @@
-# Hosting PitchPredict — Render + Supabase (free tier)
+# Hosting PitchPredict — Render + Neon (free tier)
 
 This guide deploys PitchPredict as a single **Render** free web service backed by
-a single **Supabase** Postgres database. Local development and test stay on
+a single **Neon** Postgres database. Local development and test stay on
 SQLite; only production uses Postgres.
 
-> TL;DR: create a Supabase project → copy its **Session pooler** connection
-> string → deploy this repo to Render as a **Blueprint** → set `RAILS_MASTER_KEY`
-> and `DATABASE_URL` → done.
+> TL;DR: create a Neon project → copy its connection string → deploy this repo
+> to Render as a **Blueprint** → set `RAILS_MASTER_KEY` and `DATABASE_URL` → done.
 
 ---
 
 ## Prerequisites
 
 - This repository pushed to **GitHub** (Render deploys from a Git remote).
-- A **Supabase** account — <https://supabase.com>
+- A **Neon** account — <https://neon.tech>
 - A **Render** account — <https://render.com>
 - Your `config/master.key` (already in the repo locally; it is git-ignored, so
   you supply its contents to Render as an env var).
 
 ---
 
-## 1. Create the Supabase database
+## 1. Create the Neon database
 
-1. Create a new project at <https://supabase.com> (pick a region close to your
-   Render region). Set a strong database password when prompted.
-2. Open **Project Settings → Database → Connection string** and copy the
-   **Session pooler** string. It looks like:
+1. Create a new project at <https://neon.tech> (pick a region close to your
+   Render region). Neon creates a database for you automatically.
+2. On the project dashboard open **Connection Details** and copy the connection
+   string. It looks like:
 
    ```
-   postgresql://postgres.<project-ref>:<password>@aws-0-<region>.pooler.supabase.com:5432/postgres
+   postgresql://<user>:<password>@ep-<id>.<region>.aws.neon.tech/<dbname>?sslmode=require
    ```
 
-   Use the **Session pooler** (host `...pooler.supabase.com`, port `5432`, user
-   `postgres.<project-ref>`), not the "Direct connection". The session pooler is
-   IPv4-friendly and keeps persistent connections — ideal for a single
-   always-one-instance Rails server. This whole string is your `DATABASE_URL`.
+   Either endpoint works:
+   - **Direct connection** (default) — simplest, ideal for a single
+     always-one-instance Rails server.
+   - **Pooled connection** (toggle it on; the host gains `-pooler`) — PgBouncer
+     in front of the database.
 
-> The app sets `prepared_statements: false` (see `config/database.yml`), so it
-> works on the session **and** transaction pooler. If you ever switch to the
-> transaction pooler (port `6543`), no further change is needed.
+   The app sets `prepared_statements: false` **and** `advisory_locks: false` in
+   `config/database.yml`, so it runs cleanly on **both** endpoints (transaction
+   pooling forbids session-level prepared statements and advisory locks). Keep
+   the `?sslmode=require` that Neon includes — Neon requires TLS. This whole
+   string is your `DATABASE_URL`.
 
 ---
 
@@ -57,7 +59,7 @@ the service by hand.
    | Variable           | Value                                                      |
    | ------------------ | ---------------------------------------------------------- |
    | `RAILS_MASTER_KEY` | the contents of `config/master.key`                        |
-   | `DATABASE_URL`     | the Supabase **Session pooler** string from step 1         |
+   | `DATABASE_URL`     | the Neon connection string from step 1                     |
 
 3. **(Recommended)** set your admin login as additional env vars:
 
@@ -82,7 +84,7 @@ start entering results from **Admin → Fixtures** as matches finish.
 | Variable              | Required | Set by      | Purpose                                                        |
 | --------------------- | -------- | ----------- | -------------------------------------------------------------- |
 | `RAILS_MASTER_KEY`    | yes      | you         | Decrypts `config/credentials.yml.enc` (and `secret_key_base`). |
-| `DATABASE_URL`        | yes      | you         | Supabase Postgres session-pooler connection string.            |
+| `DATABASE_URL`        | yes      | you         | Neon Postgres connection string (includes `?sslmode=require`). |
 | `ADMIN_EMAIL`         | no       | you         | Admin login email (default `admin@pitchpredict.app`).          |
 | `ADMIN_PASSWORD`      | no       | you         | Admin password; random + printed once if unset.                |
 | `RAILS_ENV`           | —        | `render.yaml` | `production`.                                                 |
@@ -97,8 +99,8 @@ start entering results from **Admin → Fixtures** as matches finish.
 
 - **Render free spins down after ~15 minutes idle.** The next request triggers a
   cold start (a few seconds). Normal for a hobby app.
-- **Supabase free pauses a project after ~7 days of inactivity.** Resume it from
-  the Supabase dashboard when that happens.
+- **Neon free auto-suspends the database after ~5 minutes idle** and wakes
+  automatically on the next query (sub-second) — no manual resume needed.
 - **Background jobs run only while the web service is awake.** Solid Queue runs
   inside Puma (`SOLID_QUEUE_IN_PUMA=true`), so the scoring job processes in the
   same request window — which is exactly when an admin enters a score, so this
@@ -141,7 +143,7 @@ RAILS_ENV=production bin/rails db:seed
 
 | Symptom                                            | Likely cause / fix                                                                                 |
 | -------------------------------------------------- | -------------------------------------------------------------------------------------------------- |
-| Build fails on `db:prepare` with a connection error | `DATABASE_URL` wrong or using the **Direct** connection — switch to the **Session pooler** string.  |
+| Build fails on `db:prepare` with a connection error | `DATABASE_URL` wrong, or missing `?sslmode=require` — copy the exact string from Neon's Connection Details. |
 | `ActiveSupport::MessageEncryptor` / credentials error | `RAILS_MASTER_KEY` missing or wrong — paste the exact contents of `config/master.key`.            |
 | First request hangs ~30–60s                         | Free-tier cold start after idle spin-down. Expected.                                                |
 | Can't log in as admin                              | Check the deploy logs for the generated password, or set `ADMIN_PASSWORD` and redeploy.             |

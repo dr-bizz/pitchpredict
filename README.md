@@ -131,23 +131,24 @@ fixture whose kickoff has passed is seeded as finished and scored; the rest are
 open for predictions. Seeds are deterministic (`Random.new(2026)`), so a replant
 rebuilds the exact same world.
 
-## Deploying to Render + Supabase
+## Deploying to Render + Neon
 
-Production runs as a single Render free web service backed by a single Supabase
+Production runs as a single Render free web service backed by a single Neon
 Postgres database. Local development and test stay on SQLite.
 
-### 1. Create the Supabase database
+### 1. Create the Neon database
 
-1. Create a new project at [supabase.com](https://supabase.com).
-2. In **Project Settings → Database → Connection string**, copy the
-   **Session pooler** string. It looks like:
+1. Create a new project at [neon.tech](https://neon.tech).
+2. On the project dashboard open **Connection Details** and copy the connection
+   string. It looks like:
 
    ```
-   postgresql://postgres.<project-ref>:<password>@aws-0-<region>.pooler.supabase.com:5432/postgres
+   postgresql://<user>:<password>@ep-<id>.<region>.aws.neon.tech/<dbname>?sslmode=require
    ```
 
-   Use the **Session pooler** (host `...pooler.supabase.com`, port `5432`, user
-   `postgres.<project-ref>`) — it is IPv4-friendly and works from Render. This
+   Either the direct or the **Pooled connection** (the host gains `-pooler`)
+   works — the app sets `prepared_statements: false` and `advisory_locks: false`
+   so it is safe on both. Keep the `?sslmode=require` Neon includes. This whole
    string is your `DATABASE_URL`.
 
 ### 2. Deploy to Render via the blueprint
@@ -159,7 +160,7 @@ Postgres database. Local development and test stay on SQLite.
 2. When prompted, set the two secret environment variables (both are
    `sync: false` in the blueprint, so Render asks for them):
    - `RAILS_MASTER_KEY` — the contents of `config/master.key`.
-   - `DATABASE_URL` — the Supabase Session pooler string from step 1.
+   - `DATABASE_URL` — the Neon connection string from step 1.
 3. Optionally set your admin login (recommended), also as Render env vars:
    - `ADMIN_EMAIL` — defaults to `admin@pitchpredict.app`.
    - `ADMIN_PASSWORD` — if omitted, a random password is generated and printed
@@ -173,8 +174,8 @@ Postgres database. Local development and test stay on SQLite.
 
 - The Render free web service **spins down after ~15 minutes idle**; the next
   request triggers a cold start (a few seconds).
-- A Supabase free project **pauses after ~7 days of inactivity** and must be
-  resumed from the dashboard.
+- A Neon free database **auto-suspends after ~5 minutes idle** and wakes
+  automatically on the next query (sub-second), so no manual resume is needed.
 - Solid Queue runs **inside Puma** (`SOLID_QUEUE_IN_PUMA=true`), so background
   jobs only process while the web service is awake. That is fine here: scores
   are entered live by an admin, so the scoring job runs in the same request

@@ -1,5 +1,5 @@
 # SQLite is used for local development and test. Production runs on a single
-# PostgreSQL database (Supabase) configured via DATABASE_URL. The whole Solid
+# PostgreSQL database (Neon) configured via DATABASE_URL. The whole Solid
 # stack (Queue/Cache/Cable) lives on the primary connection in every
 # environment for full dev/prod parity — see db/migrate for their tables.
 sqlite: &sqlite
@@ -19,12 +19,15 @@ test:
   <<: *sqlite
   database: storage/test.sqlite3
 
-# Production: a single Postgres database read from DATABASE_URL (the Supabase
-# session-pooler connection string). prepared_statements: false keeps the app
-# safe across Supabase's transaction/session pooler modes.
+# Production: a single Postgres database read from DATABASE_URL (the Neon
+# connection string, which includes ?sslmode=require). prepared_statements and
+# advisory_locks are disabled so the app works on EITHER Neon endpoint — the
+# direct connection or the PgBouncer-backed "-pooler" endpoint (transaction
+# pooling forbids session-level prepared statements and advisory locks).
 production:
   primary:
     adapter: postgresql
     url: <%= ENV["DATABASE_URL"] %>
     prepared_statements: false
+    advisory_locks: false
     pool: <%= ENV.fetch("RAILS_MAX_THREADS") { 5 } %>
