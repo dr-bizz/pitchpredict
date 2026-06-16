@@ -110,4 +110,132 @@
       text-base font-bold tabular-nums text-charcoal
       focus:border-pitch focus:ring-2 focus:ring-pitch/30 focus:outline-none;
   }
+
+  /* ================================================================
+     REDESIGN SHARED BUILDING BLOCKS
+     Reusable component classes consumed by the redesigned screens.
+     Screen agents must NOT edit this file; use these classes as-is.
+     ================================================================ */
+
+  /* --- 1. Podium cards (leaderboard top 3) ---------------------------
+     Gradient cards for the top-3 finishers. Each is white text, rounded,
+     centered content with a soft shadow. Use as the card container:
+       <div class="podium-gold">…</div>
+     Pair with .avatar-initial (and the gold/silver/bronze accents below)
+     for the rank circle. Make the 1st-place card taller in the view
+     (e.g. add `sm:scale-105` / extra padding) — these classes only own
+     the surface treatment, not the grid sizing. */
+  .podium-gold,
+  .podium-silver,
+  .podium-bronze {
+    @apply flex flex-col items-center justify-center gap-2 rounded-2xl p-5
+      text-center text-white shadow-card;
+  }
+  .podium-gold {
+    @apply bg-linear-to-br from-amber-300 via-gold to-gold-dark;
+  }
+  .podium-silver {
+    @apply bg-linear-to-br from-slate-300 via-slate-400 to-slate-500;
+  }
+  .podium-bronze {
+    @apply bg-linear-to-br from-amber-500 via-amber-700 to-amber-900;
+  }
+
+  /* --- 2. Avatar initial circle --------------------------------------
+     Round badge holding a single uppercase letter/initial. Used in the
+     navbar, leaderboard rows and top-players lists.
+       <span class="avatar-initial">D</span>            (default: emerald)
+       <span class="avatar-initial avatar-initial-muted">G</span>  (grey)
+       <span class="avatar-initial avatar-initial-you">D</span>    ("you" highlight)
+     Default size is w-10. For a smaller nav badge add `w-8 h-8 text-sm`
+     in the view, or larger with `w-14 h-14 text-xl`. */
+  .avatar-initial {
+    @apply inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full
+      bg-pitch text-base font-bold uppercase text-primary-content;
+  }
+  .avatar-initial-muted {
+    @apply bg-base-300 text-charcoal/70;
+  }
+  .avatar-initial-you {
+    @apply bg-pitch text-primary-content ring-2 ring-gold ring-offset-2 ring-offset-base-100;
+  }
+
+  /* --- 3. Stat tile (dashboard stat card) ----------------------------
+     DaisyUI's native `stat` covers most of this look; prefer it when you
+     need the framed grid (`<div class="stats">…<div class="stat">`). This
+     helper is a lighter standalone card for one-off metrics with room for
+     an icon. Structure:
+       <div class="stat-tile">
+         <div class="stat-tile-label">Total points</div>
+         <div class="stat-tile-value">128</div>
+         <div class="stat-tile-sub">+12 this round</div>
+       </div>
+     Drop an icon in the top-right with absolute positioning if desired. */
+  .stat-tile {
+    @apply relative rounded-2xl border border-base-300 bg-base-100 p-4 shadow-card;
+  }
+  .stat-tile-label {
+    @apply text-xs font-semibold uppercase tracking-wider text-charcoal/50;
+  }
+  .stat-tile-value {
+    @apply mt-1 text-3xl font-bold tabular-nums leading-none text-charcoal;
+  }
+  .stat-tile-sub {
+    @apply mt-1 text-xs text-charcoal/50;
+  }
+
+  /* --- 4. Team chip --------------------------------------------------
+     Small outlined rounded-full pill for the champion "change pick" chips
+     and admin filter chips. Add `.chip-active` for the selected state.
+       <button class="chip">Brazil</button>
+       <button class="chip chip-active">Argentina</button>
+     Works as a <button>, <a> or <span>. */
+  .chip {
+    @apply inline-flex items-center gap-1.5 rounded-full border border-charcoal/15
+      bg-base-100 px-3 py-1 text-sm font-medium text-charcoal
+      transition-colors hover:border-pitch hover:bg-pitch-light cursor-pointer;
+  }
+  .chip-active {
+    @apply border-pitch bg-pitch text-primary-content hover:bg-pitch hover:border-pitch;
+  }
+
+  /* --- 5. How-it-works scoring tile ----------------------------------
+     base-200 rounded tile with a big colored number + label. Colour the
+     number with a variant; the label sits muted underneath.
+       <div class="score-tile">
+         <div class="score-tile-num score-tile-green">3</div>
+         <div class="score-tile-label">Exact score</div>
+       </div>
+     Variants: score-tile-green / -teal / -gold / -red. */
+  .score-tile {
+    @apply flex flex-col items-center justify-center gap-1 rounded-2xl
+      bg-base-200 p-4 text-center;
+  }
+  .score-tile-num {
+    @apply text-3xl font-bold tabular-nums leading-none;
+  }
+  .score-tile-label {
+    @apply text-xs font-medium text-charcoal/60;
+  }
+  .score-tile-green {
+    @apply text-pitch;
+  }
+  .score-tile-teal {
+    @apply text-teal-accent;
+  }
+  .score-tile-gold {
+    @apply text-gold-dark;
+  }
+  .score-tile-red {
+    @apply text-error;
+  }
 }
+
+/* --- 6. Status badge mapping (documentation only) ---------------------
+   Fixture status maps onto native DaisyUI `badge` modifiers — no new
+   classes needed. Use these in the views for consistency:
+     Scheduled  ->  <span class="badge badge-ghost">Scheduled</span>
+     Live       ->  <span class="badge badge-error">Live</span>   (pair with
+                    `animate-pulse` for a heartbeat if desired)
+     Finished   ->  <span class="badge badge-success">Finished</span>
+   ------------------------------------------------------------------- */

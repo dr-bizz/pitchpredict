@@ -1,6 +1,11 @@
 <% content_for :title, "Set new password · PitchPredict" %>
 
 <div class="mx-auto mt-4 max-w-md sm:mt-10">
+  <%= link_to root_path, class: "mb-6 flex items-center justify-center gap-2 text-charcoal" do %>
+    <%= image_tag "icon.svg", alt: "PitchPredict", class: "h-10 w-10 rounded-xl shadow-md" %>
+    <span class="text-xl font-bold tracking-tight">PitchPredict</span>
+  <% end %>
+
   <div class="card bg-base-100 shadow-md rounded-2xl">
     <div class="card-body">
       <h1 class="page-title">Set a new password</h1>

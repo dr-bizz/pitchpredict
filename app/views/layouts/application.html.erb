@@ -76,9 +76,18 @@
 
         <div class="navbar-end gap-2">
           <% if authenticated? %>
-            <span class="hidden text-sm font-medium text-primary-content/80 md:inline"><%= Current.user&.name %></span>
-            <%= button_to "Sign out", session_path, method: :delete,
-                  class: "btn btn-ghost btn-sm text-primary-content/90 hover:bg-white/10 hover:text-primary-content" %>
+            <span class="hidden items-center gap-2 md:flex">
+              <%# Gold initial avatar: first letter of the signed-in user's name. %>
+              <span class="avatar-initial h-8 w-8 bg-gold text-sm text-charcoal" aria-hidden="true"><%= Current.user&.name.to_s.first %></span>
+              <span class="text-sm font-semibold text-primary-content"><%= Current.user&.name %></span>
+            </span>
+            <%= button_to session_path, method: :delete,
+                  class: "btn btn-ghost btn-sm gap-1 text-primary-content/90 hover:bg-white/10 hover:text-primary-content" do %>
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+              </svg>
+              <span>Sign out</span>
+            <% end %>
           <% else %>
             <%= link_to "Sign in", new_session_path, class: "btn btn-ghost btn-sm text-primary-content/90 hover:bg-white/10 hover:text-primary-content" %>
             <%= link_to "Sign up", new_registration_path, class: "btn btn-secondary btn-sm" %>
