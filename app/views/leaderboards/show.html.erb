@@ -21,21 +21,15 @@
   </header>
 
   <% if top3.size == 3 %>
-    <%# Podium — gold center & raised, silver left, bronze right. %>
-    <section aria-label="Top three players" class="grid grid-cols-3 items-end gap-3 sm:gap-4">
-      <% medals = { 1 => "🥇", 2 => "🥈", 3 => "🥉" } %>
-      <% silver, gold, bronze = top3[1], top3[0], top3[2] %>
-      <% [ [silver, "podium-silver", "🥈"], [gold, "podium-gold", "🥇"], [bronze, "podium-bronze", "🥉"] ].each do |player, klass, medal| %>
-        <% raised = klass == "podium-gold" %>
-        <div class="<%= klass %> <%= raised ? "p-5 sm:scale-105 sm:p-6" : "p-4 sm:p-5" %>">
+    <%# Podium — gold, silver, bronze left-to-right, equal height. %>
+    <section aria-label="Top three players" class="grid grid-cols-3 gap-3 sm:gap-4">
+      <% [ [top3[0], "podium-gold", "🥇"], [top3[1], "podium-silver", "🥈"], [top3[2], "podium-bronze", "🥉"] ].each do |player, klass, medal| %>
+        <div class="<%= klass %> p-4 text-center sm:p-5">
           <div class="text-2xl sm:text-3xl" aria-hidden="true"><%= medal %></div>
-          <span class="avatar-initial avatar-initial-you mx-auto mt-2 <%= raised ? "h-14 w-14 text-xl" : "h-12 w-12 text-lg" %>">
-            <%= player.user.name.first.upcase %>
-          </span>
-          <p class="mt-2 truncate text-sm font-bold sm:text-base" title="<%= player.user.name %>"><%= player.user.name %></p>
+          <p class="mt-2 truncate text-sm font-bold sm:text-base" title="<%= player.user.name %>"><%= player.user.name.split.first %></p>
           <p class="mt-1 leading-none">
             <span class="text-2xl font-extrabold tabular-nums sm:text-3xl"><%= player.total_points %></span>
-            <span class="text-xs font-medium opacity-80">pts</span>
+            <span class="block text-xs font-medium opacity-80">pts</span>
           </p>
         </div>
       <% end %>

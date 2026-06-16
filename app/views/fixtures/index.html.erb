@@ -27,7 +27,7 @@
     <% @grouped.each do |group_name, fixtures| %>
       <section class="space-y-3">
         <h2 class="section-title">Group <%= group_name %></h2>
-        <div class="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+        <div class="grid gap-4 min-[851px]:grid-cols-2">
           <% fixtures.each do |fixture| %>
             <%= render "fixtures/fixture_card",
                        fixture: fixture,
@@ -37,7 +37,7 @@
       </section>
     <% end %>
   <% else %>
-    <div class="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+    <div class="grid gap-4 min-[851px]:grid-cols-2">
       <% @fixtures.each do |fixture| %>
         <%= render "fixtures/fixture_card",
                    fixture: fixture,
