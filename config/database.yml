@@ -30,4 +30,7 @@ production:
     url: <%= ENV["DATABASE_URL"] %>
     prepared_statements: false
     advisory_locks: false
-    pool: <%= ENV.fetch("RAILS_MAX_THREADS") { 5 } %>
+    # Pool must cover Puma's web threads AND the in-Puma Solid Queue worker
+    # (3 worker threads + dispatcher + heartbeat ≈ 5), so add headroom on top of
+    # RAILS_MAX_THREADS rather than equalling it. Override with DB_POOL if needed.
+    pool: <%= ENV.fetch("DB_POOL") { ENV.fetch("RAILS_MAX_THREADS") { 5 }.to_i + 5 } %>
