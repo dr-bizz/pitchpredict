@@ -7,9 +7,20 @@ class FixturesControllerTest < ActionDispatch::IntegrationTest
     assert_redirected_to new_session_path
   end
 
-  test "shows the group stage by default with group headings and per-fixture frames" do
+  test "shows upcoming matches by date by default" do
     sign_in_as users(:one)
     get predictions_path
+
+    assert_response :success
+    assert_select "a[aria-current=page]", text: "Upcoming"
+    # Upcoming groups by day (not by group), and only future matches appear.
+    assert_select "turbo-frame#prediction_fixture_#{fixtures(:upcoming_group).id}"
+    assert_select "turbo-frame#prediction_fixture_#{fixtures(:finished_group).id}", count: 0
+  end
+
+  test "shows the group stage with group headings and per-fixture frames" do
+    sign_in_as users(:one)
+    get predictions_path(stage: "group")
 
     assert_response :success
     assert_select "h2", text: "Group A"
@@ -22,7 +33,7 @@ class FixturesControllerTest < ActionDispatch::IntegrationTest
 
   test "prefills the form and shows the Predicted pill for predicted fixtures" do
     sign_in_as users(:one)
-    get predictions_path
+    get predictions_path(stage: "group")
 
     assert_select "span.badge.badge-success", text: "Predicted"
     assert_select "input[name='prediction[home_score]'][value='2']"
@@ -30,7 +41,7 @@ class FixturesControllerTest < ActionDispatch::IntegrationTest
 
   test "finished fixtures show the actual score, locked inputs and the points pill" do
     sign_in_as users(:two)
-    get predictions_path
+    get predictions_path(stage: "group")
 
     assert_response :success
     # Finished card shows the real result: a prominent score block (2–1) and a
@@ -47,7 +58,7 @@ class FixturesControllerTest < ActionDispatch::IntegrationTest
 
   test "finished fixture without a prediction shows the No prediction pill" do
     sign_in_as users(:one)
-    get predictions_path
+    get predictions_path(stage: "group")
 
     assert_select "turbo-frame#prediction_fixture_#{fixtures(:finished_group).id} span.badge.badge-ghost",
                   text: "No prediction"
@@ -62,12 +73,12 @@ class FixturesControllerTest < ActionDispatch::IntegrationTest
     assert_match "No fixtures scheduled", response.body
   end
 
-  test "falls back to the group stage for unknown stage params" do
+  test "falls back to the upcoming view for unknown stage params" do
     sign_in_as users(:one)
     get predictions_path(stage: "bogus")
 
     assert_response :success
-    assert_select "a[aria-current=page]", text: "Groups"
-    assert_select "h2", text: "Group A"
+    assert_select "a[aria-current=page]", text: "Upcoming"
+    assert_select "turbo-frame#prediction_fixture_#{fixtures(:upcoming_group).id}"
   end
 end

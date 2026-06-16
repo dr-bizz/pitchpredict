@@ -20,9 +20,23 @@
   <% if @fixtures.empty? %>
     <div class="card bg-base-100 shadow-card rounded-2xl">
       <div class="card-body items-center text-center text-sm text-base-content/60">
-        No fixtures scheduled for this stage yet. Check back once the bracket is set.
+        <%= @stage == "upcoming" ? "No upcoming matches — every game has kicked off." : "No fixtures scheduled for this stage yet. Check back once the bracket is set." %>
       </div>
     </div>
+  <% elsif @by_date %>
+    <%# Upcoming view — soonest first, grouped under a heading per day. %>
+    <% @by_date.each do |date, fixtures| %>
+      <section class="space-y-3">
+        <h2 class="section-title"><%= date.strftime("%A %-d %B") %></h2>
+        <div class="grid gap-4 min-[851px]:grid-cols-2">
+          <% fixtures.each do |fixture| %>
+            <%= render "fixtures/fixture_card",
+                       fixture: fixture,
+                       prediction: @predictions_by_fixture_id[fixture.id] %>
+          <% end %>
+        </div>
+      </section>
+    <% end %>
   <% elsif @grouped %>
     <% @grouped.each do |group_name, fixtures| %>
       <section class="space-y-3">

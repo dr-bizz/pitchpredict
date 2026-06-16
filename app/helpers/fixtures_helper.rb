@@ -1,6 +1,8 @@
 module FixturesHelper
-  # Tab order + labels for the predictions grid. Keys match Fixture.stages.
+  # Tab order + labels for the predictions grid. "upcoming" is a virtual tab
+  # (all not-yet-started matches by date); the rest match Fixture.stages.
   STAGE_TABS = {
+    "upcoming" => "Upcoming",
     "group" => "Groups",
     "r32" => "R32",
     "r16" => "R16",
