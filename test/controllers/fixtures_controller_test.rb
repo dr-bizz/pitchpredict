@@ -33,11 +33,16 @@ class FixturesControllerTest < ActionDispatch::IntegrationTest
     get predictions_path
 
     assert_response :success
-    assert_match "2 – 1", response.body
+    # Finished card shows the real result: a prominent score block (2–1) and a
+    # "Result: 2–1" footer. The en-dash separator is its own span, so assert the
+    # footer result text rather than a brittle whitespace match.
+    assert_select "turbo-frame#prediction_fixture_#{fixtures(:finished_group).id} footer",
+                  text: /Result:\s*2–1/
     assert_select "span.badge.badge-warning", text: "+5 pts"
-    assert_select "input[disabled]"
-    # A finished fixture renders no form for the locked card.
+    # A finished fixture is locked from editing: it renders no form and no
+    # editable score inputs (the result is shown as a static score block).
     assert_select "turbo-frame#prediction_fixture_#{fixtures(:finished_group).id} form", count: 0
+    assert_select "turbo-frame#prediction_fixture_#{fixtures(:finished_group).id} input", count: 0
   end
 
   test "finished fixture without a prediction shows the No prediction pill" do

@@ -1,28 +1,36 @@
 <%# locals: (fixture:, prediction: nil, just_saved: false) -%>
 <% prediction ||= Prediction.new(fixture: fixture) %>
 <%= turbo_frame_tag dom_id(fixture, :prediction) do %>
-  <article class="card bg-base-100 shadow-md rounded-2xl h-full">
-    <div class="card-body flex h-full flex-col gap-4">
-    <header class="flex items-start justify-between gap-2">
-      <div class="text-xs text-base-content/60">
-        <p class="font-medium text-base-content/80">
+  <article class="card bg-base-100 shadow-card rounded-2xl h-full">
+    <div class="card-body flex h-full flex-col gap-4 p-5">
+    <%# --- Top row: venue + kickoff on the left, status badge on the right --- %>
+    <header class="flex items-start justify-between gap-3">
+      <div class="min-w-0 text-xs text-charcoal/60">
+        <p class="truncate font-medium text-charcoal/70">
+          <%= fixture.stadium.name %> · <%= fixture.stadium.city %>
+        </p>
+        <p class="mt-0.5">
           <time datetime="<%= fixture.kickoff_at.iso8601 %>"><%= kickoff_label(fixture) %></time>
         </p>
-        <p><%= fixture.stadium.name %> · <%= fixture.stadium.city %></p>
       </div>
       <div class="flex shrink-0 items-center gap-1.5">
         <% if fixture.live? %>
-          <span class="badge badge-error">Live</span>
+          <span class="badge badge-error animate-pulse">Live</span>
         <% end %>
         <% if fixture.finished? && prediction.persisted? && prediction.points_awarded.present? %>
-          <span class="badge badge-warning">+<%= prediction.points_awarded %> pts</span>
+          <span class="badge badge-warning gap-1 font-semibold text-gold-dark">+<%= prediction.points_awarded %> pts</span>
         <% elsif fixture.finished? && !prediction.persisted? %>
           <span class="badge badge-ghost">No prediction</span>
-        <% elsif prediction.persisted? %>
-          <span class="badge badge-success">Predicted</span>
+        <% elsif prediction.persisted? && !fixture.finished? %>
+          <span class="badge badge-success gap-1 font-medium">
+            <svg class="h-3 w-3" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+              <path fill-rule="evenodd" d="M16.704 5.29a1 1 0 0 1 .006 1.414l-7.5 7.6a1 1 0 0 1-1.42.006l-3.5-3.5a1 1 0 1 1 1.414-1.414l2.79 2.79 6.796-6.89a1 1 0 0 1 1.414-.006Z" clip-rule="evenodd" />
+            </svg>
+            Predicted
+          </span>
         <% end %>
         <% if fixture.locked? && !fixture.finished? %>
-          <svg class="h-4 w-4 text-base-content/40" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+          <svg class="h-4 w-4 text-charcoal/40" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
             <path fill-rule="evenodd" d="M10 1a4.5 4.5 0 0 0-4.5 4.5V9H5a2 2 0 0 0-2 2v6a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-6a2 2 0 0 0-2-2h-.5V5.5A4.5 4.5 0 0 0 10 1Zm3 8V5.5a3 3 0 1 0-6 0V9h6Z" clip-rule="evenodd" />
           </svg>
           <span class="sr-only">Locked</span>
@@ -30,25 +38,69 @@
       </div>
     </header>
 
-    <div class="flex items-center justify-between gap-3">
-      <div class="flex min-w-0 flex-1 items-center gap-2">
-        <span class="text-2xl leading-none" aria-hidden="true"><%= fixture.home_team.flag_emoji %></span>
-        <span class="truncate text-sm font-semibold text-base-content sm:text-base"><%= fixture.home_team.name %></span>
-      </div>
-      <% if fixture.finished? %>
-        <div class="shrink-0 text-xl font-bold tabular-nums text-base-content">
-          <%= fixture.home_score %> – <%= fixture.away_score %>
+    <% if fixture.finished? %>
+      <%# --- Finished: real result, prominent pitch-green score --- %>
+      <div class="flex items-center justify-between gap-3">
+        <div class="flex min-w-0 flex-1 flex-col items-center gap-1.5 text-center">
+          <span class="text-3xl leading-none" aria-hidden="true"><%= fixture.home_team.flag_emoji %></span>
+          <span class="truncate w-full text-sm font-bold text-charcoal"><%= fixture.home_team.name %></span>
         </div>
-      <% else %>
-        <span class="shrink-0 text-xs font-semibold uppercase tracking-wide text-base-content/40">vs</span>
-      <% end %>
-      <div class="flex min-w-0 flex-1 items-center justify-end gap-2">
-        <span class="truncate text-right text-sm font-semibold text-base-content sm:text-base"><%= fixture.away_team.name %></span>
-        <span class="text-2xl leading-none" aria-hidden="true"><%= fixture.away_team.flag_emoji %></span>
+        <div class="shrink-0 px-1 text-3xl font-bold tabular-nums text-pitch">
+          <%= fixture.home_score %><span class="px-1 text-charcoal/30">–</span><%= fixture.away_score %>
+        </div>
+        <div class="flex min-w-0 flex-1 flex-col items-center gap-1.5 text-center">
+          <span class="text-3xl leading-none" aria-hidden="true"><%= fixture.away_team.flag_emoji %></span>
+          <span class="truncate w-full text-sm font-bold text-charcoal"><%= fixture.away_team.name %></span>
+        </div>
       </div>
-    </div>
 
-    <% if fixture.locked? %>
+      <% if prediction.errors.any? %>
+        <%# A save raced past kickoff/result entry: explain why it was rejected. %>
+        <div class="alert alert-error mt-auto w-full py-2 text-xs" role="alert">
+          <%= prediction.errors.full_messages.to_sentence %>
+        </div>
+      <% end %>
+
+      <footer class="<%= prediction.errors.any? ? "" : "mt-auto " %>flex items-center justify-between gap-2 border-t border-base-200 pt-3 text-xs">
+        <span class="text-charcoal/60">
+          <% if prediction.persisted? %>
+            Your pick: <span class="font-semibold text-charcoal/80 tabular-nums"><%= prediction.home_score_in_database %>–<%= prediction.away_score_in_database %></span>
+          <% else %>
+            <span class="italic text-charcoal/40">No prediction</span>
+          <% end %>
+        </span>
+        <span class="text-charcoal/60">
+          Result: <span class="font-semibold text-charcoal/80 tabular-nums"><%= fixture.home_score %>–<%= fixture.away_score %></span>
+        </span>
+      </footer>
+
+    <% elsif fixture.locked? %>
+      <%# --- Locked (kicked off, no result yet): greyed disabled inputs + lock note --- %>
+      <div class="flex items-center justify-between gap-3">
+        <div class="flex min-w-0 flex-1 flex-col items-center gap-1.5 text-center">
+          <span class="text-3xl leading-none" aria-hidden="true"><%= fixture.home_team.flag_emoji %></span>
+          <span class="truncate w-full text-sm font-bold text-charcoal"><%= fixture.home_team.name %></span>
+        </div>
+        <div class="flex shrink-0 items-center gap-2 opacity-50">
+          <% if prediction.persisted? %>
+            <%# *_in_database so a just-rejected (dirty) update still shows the saved pick. %>
+            <input type="number" class="score-input" value="<%= prediction.home_score_in_database %>" disabled
+                   aria-label="Your predicted <%= fixture.home_team.name %> goals">
+            <span class="text-xs font-semibold uppercase tracking-wide text-charcoal/40">vs</span>
+            <input type="number" class="score-input" value="<%= prediction.away_score_in_database %>" disabled
+                   aria-label="Your predicted <%= fixture.away_team.name %> goals">
+          <% else %>
+            <input type="number" class="score-input" disabled aria-label="<%= fixture.home_team.name %> goals">
+            <span class="text-xs font-semibold uppercase tracking-wide text-charcoal/40">vs</span>
+            <input type="number" class="score-input" disabled aria-label="<%= fixture.away_team.name %> goals">
+          <% end %>
+        </div>
+        <div class="flex min-w-0 flex-1 flex-col items-center gap-1.5 text-center">
+          <span class="text-3xl leading-none" aria-hidden="true"><%= fixture.away_team.flag_emoji %></span>
+          <span class="truncate w-full text-sm font-bold text-charcoal"><%= fixture.away_team.name %></span>
+        </div>
+      </div>
+
       <div class="mt-auto flex flex-col items-center gap-1.5">
         <% if prediction.errors.any? %>
           <%# A save raced past kickoff: explain why it was rejected. %>
@@ -56,67 +108,75 @@
             <%= prediction.errors.full_messages.to_sentence %>
           </div>
         <% end %>
-        <% if prediction.persisted? %>
-          <div class="flex items-center justify-center gap-3 opacity-60">
-            <%# *_in_database so a just-rejected (dirty) update still shows the saved pick. %>
-            <input type="number" class="score-input" value="<%= prediction.home_score_in_database %>" disabled
-                   aria-label="Your predicted <%= fixture.home_team.name %> goals">
-            <span class="font-semibold text-base-content/40">:</span>
-            <input type="number" class="score-input" value="<%= prediction.away_score_in_database %>" disabled
-                   aria-label="Your predicted <%= fixture.away_team.name %> goals">
-          </div>
-          <p class="flex items-center gap-1 text-xs text-base-content/50">
-            <% unless fixture.finished? %>
-              <svg class="h-3.5 w-3.5" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
-                <path fill-rule="evenodd" d="M10 1a4.5 4.5 0 0 0-4.5 4.5V9H5a2 2 0 0 0-2 2v6a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-6a2 2 0 0 0-2-2h-.5V5.5A4.5 4.5 0 0 0 10 1Zm3 8V5.5a3 3 0 1 0-6 0V9h6Z" clip-rule="evenodd" />
-              </svg>
-            <% end %>
-            <%= fixture.finished? ? "Your prediction" : "Your prediction · locked at kickoff" %>
-          </p>
-        <% else %>
-          <p class="text-xs text-base-content/50">Predictions closed at kickoff.</p>
-        <% end %>
+        <p class="flex items-center gap-1 text-xs text-charcoal/50">
+          <svg class="h-3.5 w-3.5" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+            <path fill-rule="evenodd" d="M10 1a4.5 4.5 0 0 0-4.5 4.5V9H5a2 2 0 0 0-2 2v6a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-6a2 2 0 0 0-2-2h-.5V5.5A4.5 4.5 0 0 0 10 1Zm3 8V5.5a3 3 0 1 0-6 0V9h6Z" clip-rule="evenodd" />
+          </svg>
+          <%= prediction.persisted? ? "Your prediction · locked at kickoff" : "Predictions closed at kickoff." %>
+        </p>
       </div>
+
     <% else %>
-      <%= form_with model: prediction, url: fixture_prediction_path(fixture), class: "mt-auto flex flex-col gap-3" do |form| %>
+      <%# --- Open: editable steppers (chevron up above / down below each input) --- %>
+      <%= form_with model: prediction, url: fixture_prediction_path(fixture), class: "mt-auto flex flex-1 flex-col gap-4" do |form| %>
         <% if prediction.errors.any? %>
           <div class="alert alert-error py-2 text-xs" role="alert">
             <%= prediction.errors.full_messages.to_sentence %>
           </div>
         <% end %>
 
-        <div class="flex items-center justify-center gap-3">
-          <div class="flex items-center gap-1.5" data-controller="stepper">
-            <button type="button" data-action="stepper#decrement"
-                    class="btn btn-circle btn-ghost btn-sm text-base font-bold"
-                    aria-label="Decrease <%= fixture.home_team.name %> goals">−</button>
-            <%= form.number_field :home_score, in: 0..20, step: 1, required: true,
-                                  inputmode: "numeric", class: "score-input",
-                                  data: { stepper_target: "input" },
-                                  aria: { label: "#{fixture.home_team.name} goals" } %>
-            <button type="button" data-action="stepper#increment"
-                    class="btn btn-circle btn-ghost btn-sm text-base font-bold"
-                    aria-label="Increase <%= fixture.home_team.name %> goals">+</button>
+        <div class="flex items-center justify-between gap-3">
+          <div class="flex min-w-0 flex-1 flex-col items-center gap-1.5 text-center">
+            <span class="text-3xl leading-none" aria-hidden="true"><%= fixture.home_team.flag_emoji %></span>
+            <span class="truncate w-full text-sm font-bold text-charcoal"><%= fixture.home_team.name %></span>
           </div>
 
-          <span class="font-semibold text-base-content/40">:</span>
+          <div class="flex shrink-0 items-center gap-3">
+            <div class="flex flex-col items-center gap-1.5" data-controller="stepper">
+              <button type="button" data-action="stepper#increment"
+                      class="btn btn-circle btn-ghost btn-xs"
+                      aria-label="Increase <%= fixture.home_team.name %> goals">
+                <svg class="h-4 w-4" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><path d="M5 12.5 10 7.5l5 5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+              </button>
+              <%= form.number_field :home_score, in: 0..20, step: 1, required: true,
+                                    inputmode: "numeric", class: "score-input",
+                                    data: { stepper_target: "input" },
+                                    aria: { label: "#{fixture.home_team.name} goals" } %>
+              <button type="button" data-action="stepper#decrement"
+                      class="btn btn-circle btn-ghost btn-xs"
+                      aria-label="Decrease <%= fixture.home_team.name %> goals">
+                <svg class="h-4 w-4" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><path d="M5 7.5 10 12.5l5-5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+              </button>
+            </div>
 
-          <div class="flex items-center gap-1.5" data-controller="stepper">
-            <button type="button" data-action="stepper#decrement"
-                    class="btn btn-circle btn-ghost btn-sm text-base font-bold"
-                    aria-label="Decrease <%= fixture.away_team.name %> goals">−</button>
-            <%= form.number_field :away_score, in: 0..20, step: 1, required: true,
-                                  inputmode: "numeric", class: "score-input",
-                                  data: { stepper_target: "input" },
-                                  aria: { label: "#{fixture.away_team.name} goals" } %>
-            <button type="button" data-action="stepper#increment"
-                    class="btn btn-circle btn-ghost btn-sm text-base font-bold"
-                    aria-label="Increase <%= fixture.away_team.name %> goals">+</button>
+            <span class="text-xs font-semibold uppercase tracking-wide text-charcoal/40">vs</span>
+
+            <div class="flex flex-col items-center gap-1.5" data-controller="stepper">
+              <button type="button" data-action="stepper#increment"
+                      class="btn btn-circle btn-ghost btn-xs"
+                      aria-label="Increase <%= fixture.away_team.name %> goals">
+                <svg class="h-4 w-4" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><path d="M5 12.5 10 7.5l5 5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+              </button>
+              <%= form.number_field :away_score, in: 0..20, step: 1, required: true,
+                                    inputmode: "numeric", class: "score-input",
+                                    data: { stepper_target: "input" },
+                                    aria: { label: "#{fixture.away_team.name} goals" } %>
+              <button type="button" data-action="stepper#decrement"
+                      class="btn btn-circle btn-ghost btn-xs"
+                      aria-label="Decrease <%= fixture.away_team.name %> goals">
+                <svg class="h-4 w-4" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><path d="M5 7.5 10 12.5l5-5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+              </button>
+            </div>
+          </div>
+
+          <div class="flex min-w-0 flex-1 flex-col items-center gap-1.5 text-center">
+            <span class="text-3xl leading-none" aria-hidden="true"><%= fixture.away_team.flag_emoji %></span>
+            <span class="truncate w-full text-sm font-bold text-charcoal"><%= fixture.away_team.name %></span>
           </div>
         </div>
 
-        <div class="flex items-center justify-center gap-2">
-          <%= form.submit prediction.persisted? ? "Update prediction" : "Save prediction", class: "btn btn-primary" %>
+        <div class="mt-auto flex items-center justify-center gap-2">
+          <%= form.submit prediction.persisted? ? "Update prediction" : "Save prediction", class: "btn btn-primary btn-sm" %>
           <% if just_saved %>
             <span class="text-xs font-semibold text-success" role="status">Saved ✓</span>
           <% end %>

@@ -18,7 +18,7 @@
   </nav>
 
   <% if @fixtures.empty? %>
-    <div class="card bg-base-100 shadow-md rounded-2xl">
+    <div class="card bg-base-100 shadow-card rounded-2xl">
       <div class="card-body items-center text-center text-sm text-base-content/60">
         No fixtures scheduled for this stage yet. Check back once the bracket is set.
       </div>
@@ -27,7 +27,7 @@
     <% @grouped.each do |group_name, fixtures| %>
       <section class="space-y-3">
         <h2 class="section-title">Group <%= group_name %></h2>
-        <div class="grid gap-4 sm:grid-cols-2">
+        <div class="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
           <% fixtures.each do |fixture| %>
             <%= render "fixtures/fixture_card",
                        fixture: fixture,
@@ -37,7 +37,7 @@
       </section>
     <% end %>
   <% else %>
-    <div class="grid gap-4 sm:grid-cols-2">
+    <div class="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
       <% @fixtures.each do |fixture| %>
         <%= render "fixtures/fixture_card",
                    fixture: fixture,
