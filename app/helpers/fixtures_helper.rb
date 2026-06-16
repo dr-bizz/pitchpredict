@@ -11,17 +11,17 @@ module FixturesHelper
   }.freeze
 
   # Single source of truth for kickoff timestamps so every screen agrees.
-  # NOTE: assumption — kickoff times are displayed in the app's default time
-  # zone (UTC; config.time_zone is unset). Per-user zones are out of scope, so
-  # the zone is labelled explicitly — the tournament spans US/Canada/Mexico
-  # and an unlabelled "4:00 PM" would read as local time.
+  # NOTE: kickoff times are displayed in the app's default time zone (Eastern;
+  # set in config/application.rb), matching the official 2026 schedule dates.
+  # Per-user zones are out of scope, so the zone is labelled explicitly — the
+  # tournament spans US/Canada/Mexico and an unlabelled "4:00 PM" is ambiguous.
   KICKOFF_FORMATS = {
     short: "%a %-d %b · %-I:%M %p",        # fixture cards, admin index
     long: "%A %-d %B %Y · %-I:%M %p"       # admin edit header
   }.freeze
 
   def kickoff_label(fixture, style: :short)
-    "#{fixture.kickoff_at.strftime(KICKOFF_FORMATS.fetch(style))} UTC"
+    "#{fixture.kickoff_at.in_time_zone.strftime(KICKOFF_FORMATS.fetch(style))} ET"
   end
 
   def stage_tab_classes(active)
