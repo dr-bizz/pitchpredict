@@ -41,7 +41,7 @@
           <% rows.each do |row| %>
             <% mine = viewer.present? && row.user.id == viewer.id %>
             <% medal = { 1 => "🥇", 2 => "🥈", 3 => "🥉" }[row.rank] %>
-            <tr data-user-id="<%= row.user.id %>" data-current-user="<%= mine %>" class="<%= "bg-pitch/5" if mine %>">
+            <tr data-user-id="<%= row.user.id %>" data-current-user="<%= mine %>" class="<%= "bg-pitch-light" if mine %>">
               <td>
                 <% if medal %>
                   <span class="text-xl leading-none" title="Rank <%= row.rank %>"><%= medal %></span>
@@ -52,7 +52,7 @@
               </td>
               <td class="font-medium">
                 <div class="flex items-center gap-2.5">
-                  <span class="avatar-initial h-9 w-9 text-sm <%= "avatar-initial-you" if mine %>"><%= row.user.name.first.upcase %></span>
+                  <span class="avatar-initial h-9 w-9 text-sm <%= mine ? "avatar-initial-you" : "avatar-initial-muted" %>"><%= row.user.name.first.upcase %></span>
                   <span><%= row.user.name %></span>
                   <%# Rendered for every row (hidden) so the Stimulus controller can
                       reveal the viewer's badge after a viewer-agnostic broadcast. %>
