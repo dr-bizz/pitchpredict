@@ -29,7 +29,7 @@ module Admin
       sign_in_as @admin
       get admin_fixtures_path
       assert_response :success
-      assert_select "h1", text: "Match results"
+      assert_select "h1", text: "Admin panel"
       assert_select "td", text: /Spain/
     end
 

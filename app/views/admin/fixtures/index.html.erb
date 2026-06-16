@@ -8,96 +8,102 @@
      end
    } %>
 
-<div class="breadcrumbs mb-4 text-sm">
-  <ul>
-    <li><%= link_to "Admin", admin_fixtures_path %></li>
-    <li>Fixtures</li>
-  </ul>
-</div>
+<div class="space-y-6">
+  <header class="flex flex-wrap items-center gap-3">
+    <span class="flex h-11 w-11 items-center justify-center rounded-full bg-pitch text-white shadow-card" aria-hidden="true">
+      <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
+      </svg>
+    </span>
+    <div>
+      <h1 class="page-title text-2xl font-extrabold uppercase tracking-tight sm:text-3xl">Admin panel</h1>
+      <p class="text-sm text-base-content/60">Manage fixtures · Enter results</p>
+    </div>
+  </header>
 
-<div class="mb-6 flex flex-wrap items-end justify-between gap-4">
-  <div>
-    <h1 class="page-title">Match results</h1>
-    <p class="mt-1 text-sm text-base-content/60">
-      Enter a final score to finish a fixture — predictions are rescored and the leaderboard updates live.
-    </p>
+  <div class="alert alert-error rounded-2xl" role="status">
+    <span class="inline-block h-2 w-2 animate-pulse rounded-full bg-current"></span>
+    <span><strong>Admin mode</strong> · Changes are published immediately.</span>
   </div>
 
-  <%= form_with url: admin_fixtures_path, method: :get, class: "flex flex-wrap items-end gap-2" do |form| %>
-    <div class="form-control">
-      <%= form.label :stage, "Stage", class: "label label-text" %>
-      <%= form.select :stage,
-            options_for_select(Fixture.stages.keys.map { |s| [ stage_label(s), s ] }, @stage),
-            { include_blank: "All stages" },
-            class: "select select-bordered w-44" %>
+  <%# Filter chips drive the existing stage/status GET params. %>
+  <div class="space-y-3">
+    <div class="flex flex-wrap items-center gap-2">
+      <span class="mr-1 text-xs font-semibold uppercase tracking-wide text-base-content/50">Stage</span>
+      <%= link_to "All", admin_fixtures_path(status: @status),
+            class: "chip #{"chip-active" if @stage.nil?}" %>
+      <% Fixture.stages.keys.each do |stage| %>
+        <%= link_to stage_label(stage), admin_fixtures_path(stage: stage, status: @status),
+              class: "chip #{"chip-active" if @stage == stage}" %>
+      <% end %>
     </div>
-    <div class="form-control">
-      <%= form.label :status, "Status", class: "label label-text" %>
-      <%= form.select :status,
-            options_for_select(Fixture.statuses.keys.map { |s| [ s.humanize, s ] }, @status),
-            { include_blank: "All statuses" },
-            class: "select select-bordered w-40" %>
+    <div class="flex flex-wrap items-center gap-2">
+      <span class="mr-1 text-xs font-semibold uppercase tracking-wide text-base-content/50">Status</span>
+      <%= link_to "All", admin_fixtures_path(stage: @stage),
+            class: "chip #{"chip-active" if @status.nil?}" %>
+      <% Fixture.statuses.keys.each do |status| %>
+        <%= link_to status.humanize, admin_fixtures_path(stage: @stage, status: status),
+              class: "chip #{"chip-active" if @status == status}" %>
+      <% end %>
     </div>
-    <%= form.submit "Filter", class: "btn btn-ghost" %>
-    <% if @stage || @status %>
-      <%= link_to "Clear", admin_fixtures_path, class: "btn btn-ghost" %>
-    <% end %>
-  <% end %>
-</div>
+  </div>
 
-<div class="card bg-base-100 shadow-md rounded-2xl overflow-hidden">
-  <div class="card-body p-0">
-    <% if @fixtures.any? %>
-      <div class="overflow-x-auto">
-        <table class="table">
-          <thead>
-            <tr>
-              <th>Match</th>
-              <th>Kickoff</th>
-              <th>Stage</th>
-              <th>Status</th>
-              <th class="text-center">Score</th>
-              <th><span class="sr-only">Actions</span></th>
-            </tr>
-          </thead>
-          <tbody>
-            <% @fixtures.each do |fixture| %>
-              <tr class="hover">
-                <td>
-                  <div class="font-semibold">
-                    <%= fixture.home_team.name %>
-                    <span class="font-normal text-base-content/40">vs</span>
-                    <%= fixture.away_team.name %>
-                  </div>
-                  <div class="text-xs text-base-content/50"><%= fixture.stadium.name %>, <%= fixture.stadium.city %></div>
-                </td>
-                <td class="whitespace-nowrap text-base-content/70">
-                  <%= kickoff_label(fixture) %>
-                </td>
-                <td><span class="badge badge-ghost"><%= stage_label(fixture.stage) %></span></td>
-                <td><span class="<%= status_badge.call(fixture.status) %>"><%= fixture.status.humanize %></span></td>
-                <td class="text-center font-bold tabular-nums">
-                  <% if fixture.home_score && fixture.away_score %>
-                    <%= fixture.home_score %>–<%= fixture.away_score %>
-                  <% else %>
-                    <span class="font-normal text-base-content/30">—</span>
-                  <% end %>
-                </td>
-                <td class="text-right whitespace-nowrap">
-                  <%= link_to(fixture.finished? ? "Edit result" : "Enter result",
-                        edit_admin_fixture_path(fixture),
-                        class: fixture.finished? ? "btn btn-ghost btn-sm" : "btn btn-primary btn-sm") %>
-                </td>
+  <div class="card bg-base-100 shadow-card rounded-2xl overflow-hidden">
+    <div class="card-body p-0">
+      <% if @fixtures.any? %>
+        <div class="overflow-x-auto">
+          <table class="table">
+            <thead>
+              <tr class="text-xs uppercase tracking-wide text-base-content/50">
+                <th>Match</th>
+                <th>Stage</th>
+                <th>Status</th>
+                <th class="text-center">Result</th>
+                <th class="text-right"><span class="sr-only">Action</span></th>
               </tr>
-            <% end %>
-          </tbody>
-        </table>
-      </div>
-    <% else %>
-      <div class="p-6 text-center text-sm text-base-content/60">
-        No fixtures match this filter.
-        <%= link_to "Show all fixtures", admin_fixtures_path, class: "link link-primary font-medium" %>
-      </div>
-    <% end %>
+            </thead>
+            <tbody>
+              <% @fixtures.each do |fixture| %>
+                <tr class="hover">
+                  <td>
+                    <div class="flex items-center gap-2 font-semibold">
+                      <span class="badge badge-ghost badge-sm font-mono"><%= fixture.home_team.code %></span>
+                      <span><%= fixture.home_team.name %></span>
+                      <span class="font-normal text-base-content/40">vs</span>
+                      <span><%= fixture.away_team.name %></span>
+                      <span class="badge badge-ghost badge-sm font-mono"><%= fixture.away_team.code %></span>
+                    </div>
+                    <div class="text-xs text-base-content/50"><%= kickoff_label(fixture) %></div>
+                  </td>
+                  <td><span class="badge badge-ghost"><%= stage_label(fixture.stage) %></span></td>
+                  <td>
+                    <span class="<%= status_badge.call(fixture.status) %> <%= "animate-pulse" if fixture.live? %>"><%= fixture.status.humanize %></span>
+                  </td>
+                  <td class="text-center">
+                    <% if fixture.home_score && fixture.away_score %>
+                      <span class="font-bold tabular-nums text-teal-accent"><%= fixture.home_score %>–<%= fixture.away_score %></span>
+                    <% else %>
+                      <span class="text-base-content/30">—</span>
+                    <% end %>
+                  </td>
+                  <td class="text-right whitespace-nowrap">
+                    <% if fixture.finished? %>
+                      <%= link_to "Done", edit_admin_fixture_path(fixture), class: "btn btn-ghost btn-sm text-base-content/50" %>
+                    <% else %>
+                      <%= link_to "Enter result", edit_admin_fixture_path(fixture), class: "btn btn-primary btn-sm" %>
+                    <% end %>
+                  </td>
+                </tr>
+              <% end %>
+            </tbody>
+          </table>
+        </div>
+      <% else %>
+        <div class="p-6 text-center text-sm text-base-content/60">
+          No fixtures match this filter.
+          <%= link_to "Show all fixtures", admin_fixtures_path, class: "link link-primary font-medium" %>
+        </div>
+      <% end %>
+    </div>
   </div>
 </div>
