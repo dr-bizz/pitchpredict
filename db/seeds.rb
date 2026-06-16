@@ -17,10 +17,11 @@
 # NOTE: these seeds are a DESTRUCTIVE REBUILD (db:seed:replant style): every run
 # wipes all rows (including users and their sessions) and recreates the world.
 #
-# NOTE: group draws, knockout pairings and (in demo mode) results are
-# illustrative, not the real 2026 draw. Teams are real, plausible qualifiers
-# with correct FIFA codes. Replace the fixture list with the official schedule
-# for a real game.
+# NOTE: the 48 teams and the 12 groups (A–L) are the REAL official Final Draw
+# (5 Dec 2025). Knockout pairings and all kickoff dates/times are illustrative:
+# in production the whole schedule is shifted to start a couple of days from
+# the seed time so every match is open to predict ("fresh game"), and the
+# knockout bracket uses placeholder pairings since real qualifiers are unknown.
 #
 # Seeding strategy (demo mode): Prediction and ChampionPick carry kickoff-lock
 # validations, so we seed in two phases. Phase 1 creates every fixture with a
@@ -38,31 +39,32 @@ NOW = Time.current
 # Demo profile: everywhere except production, unless explicitly requested.
 SEED_DEMO = !Rails.env.production? || ENV["SEED_DEMO"] == "true"
 
+# The real groups from the official Final Draw (Washington, DC, 5 Dec 2025).
 TEAMS_BY_GROUP = {
   "A" => [ [ "Mexico", "MEX", "🇲🇽", "CONCACAF" ], [ "South Korea", "KOR", "🇰🇷", "AFC" ],
-          [ "Switzerland", "SUI", "🇨🇭", "UEFA" ], [ "South Africa", "RSA", "🇿🇦", "CAF" ] ],
-  "B" => [ [ "Canada", "CAN", "🇨🇦", "CONCACAF" ], [ "Croatia", "CRO", "🇭🇷", "UEFA" ],
-          [ "Morocco", "MAR", "🇲🇦", "CAF" ], [ "Jordan", "JOR", "🇯🇴", "AFC" ] ],
-  "C" => [ [ "Brazil", "BRA", "🇧🇷", "CONMEBOL" ], [ "Norway", "NOR", "🇳🇴", "UEFA" ],
-          [ "Ghana", "GHA", "🇬🇭", "CAF" ], [ "New Zealand", "NZL", "🇳🇿", "OFC" ] ],
-  "D" => [ [ "United States", "USA", "🇺🇸", "CONCACAF" ], [ "Japan", "JPN", "🇯🇵", "AFC" ],
-          [ "Scotland", "SCO", "🏴󠁧󠁢󠁳󠁣󠁴󠁿", "UEFA" ], [ "Paraguay", "PAR", "🇵🇾", "CONMEBOL" ] ],
-  "E" => [ [ "Spain", "ESP", "🇪🇸", "UEFA" ], [ "Ecuador", "ECU", "🇪🇨", "CONMEBOL" ],
-          [ "Ivory Coast", "CIV", "🇨🇮", "CAF" ], [ "Uzbekistan", "UZB", "🇺🇿", "AFC" ] ],
-  "F" => [ [ "Argentina", "ARG", "🇦🇷", "CONMEBOL" ], [ "Senegal", "SEN", "🇸🇳", "CAF" ],
-          [ "Austria", "AUT", "🇦🇹", "UEFA" ], [ "Australia", "AUS", "🇦🇺", "AFC" ] ],
-  "G" => [ [ "France", "FRA", "🇫🇷", "UEFA" ], [ "Colombia", "COL", "🇨🇴", "CONMEBOL" ],
-          [ "Egypt", "EGY", "🇪🇬", "CAF" ], [ "Saudi Arabia", "KSA", "🇸🇦", "AFC" ] ],
-  "H" => [ [ "England", "ENG", "🏴󠁧󠁢󠁥󠁮󠁧󠁿", "UEFA" ], [ "Uruguay", "URU", "🇺🇾", "CONMEBOL" ],
-          [ "Tunisia", "TUN", "🇹🇳", "CAF" ], [ "Iran", "IRN", "🇮🇷", "AFC" ] ],
-  "I" => [ [ "Germany", "GER", "🇩🇪", "UEFA" ], [ "Algeria", "ALG", "🇩🇿", "CAF" ],
-          [ "Curacao", "CUW", "🇨🇼", "CONCACAF" ], [ "Iraq", "IRQ", "🇮🇶", "AFC" ] ],
-  "J" => [ [ "Portugal", "POR", "🇵🇹", "UEFA" ], [ "Cape Verde", "CPV", "🇨🇻", "CAF" ],
-          [ "Panama", "PAN", "🇵🇦", "CONCACAF" ], [ "Qatar", "QAT", "🇶🇦", "AFC" ] ],
-  "K" => [ [ "Netherlands", "NED", "🇳🇱", "UEFA" ], [ "Nigeria", "NGA", "🇳🇬", "CAF" ],
-          [ "Costa Rica", "CRC", "🇨🇷", "CONCACAF" ], [ "Bolivia", "BOL", "🇧🇴", "CONMEBOL" ] ],
-  "L" => [ [ "Belgium", "BEL", "🇧🇪", "UEFA" ], [ "Italy", "ITA", "🇮🇹", "UEFA" ],
-          [ "Honduras", "HON", "🇭🇳", "CONCACAF" ], [ "DR Congo", "COD", "🇨🇩", "CAF" ] ]
+          [ "Czechia", "CZE", "🇨🇿", "UEFA" ], [ "South Africa", "RSA", "🇿🇦", "CAF" ] ],
+  "B" => [ [ "Canada", "CAN", "🇨🇦", "CONCACAF" ], [ "Switzerland", "SUI", "🇨🇭", "UEFA" ],
+          [ "Qatar", "QAT", "🇶🇦", "AFC" ], [ "Bosnia and Herzegovina", "BIH", "🇧🇦", "UEFA" ] ],
+  "C" => [ [ "Brazil", "BRA", "🇧🇷", "CONMEBOL" ], [ "Morocco", "MAR", "🇲🇦", "CAF" ],
+          [ "Scotland", "SCO", "🏴󠁧󠁢󠁳󠁣󠁴󠁿", "UEFA" ], [ "Haiti", "HAI", "🇭🇹", "CONCACAF" ] ],
+  "D" => [ [ "United States", "USA", "🇺🇸", "CONCACAF" ], [ "Paraguay", "PAR", "🇵🇾", "CONMEBOL" ],
+          [ "Australia", "AUS", "🇦🇺", "AFC" ], [ "Türkiye", "TUR", "🇹🇷", "UEFA" ] ],
+  "E" => [ [ "Germany", "GER", "🇩🇪", "UEFA" ], [ "Ecuador", "ECU", "🇪🇨", "CONMEBOL" ],
+          [ "Ivory Coast", "CIV", "🇨🇮", "CAF" ], [ "Curaçao", "CUW", "🇨🇼", "CONCACAF" ] ],
+  "F" => [ [ "Netherlands", "NED", "🇳🇱", "UEFA" ], [ "Japan", "JPN", "🇯🇵", "AFC" ],
+          [ "Sweden", "SWE", "🇸🇪", "UEFA" ], [ "Tunisia", "TUN", "🇹🇳", "CAF" ] ],
+  "G" => [ [ "Belgium", "BEL", "🇧🇪", "UEFA" ], [ "Egypt", "EGY", "🇪🇬", "CAF" ],
+          [ "Iran", "IRN", "🇮🇷", "AFC" ], [ "New Zealand", "NZL", "🇳🇿", "OFC" ] ],
+  "H" => [ [ "Spain", "ESP", "🇪🇸", "UEFA" ], [ "Uruguay", "URU", "🇺🇾", "CONMEBOL" ],
+          [ "Saudi Arabia", "KSA", "🇸🇦", "AFC" ], [ "Cape Verde", "CPV", "🇨🇻", "CAF" ] ],
+  "I" => [ [ "France", "FRA", "🇫🇷", "UEFA" ], [ "Senegal", "SEN", "🇸🇳", "CAF" ],
+          [ "Norway", "NOR", "🇳🇴", "UEFA" ], [ "Iraq", "IRQ", "🇮🇶", "AFC" ] ],
+  "J" => [ [ "Argentina", "ARG", "🇦🇷", "CONMEBOL" ], [ "Austria", "AUT", "🇦🇹", "UEFA" ],
+          [ "Algeria", "ALG", "🇩🇿", "CAF" ], [ "Jordan", "JOR", "🇯🇴", "AFC" ] ],
+  "K" => [ [ "Portugal", "POR", "🇵🇹", "UEFA" ], [ "Colombia", "COL", "🇨🇴", "CONMEBOL" ],
+          [ "Uzbekistan", "UZB", "🇺🇿", "AFC" ], [ "DR Congo", "COD", "🇨🇩", "CAF" ] ],
+  "L" => [ [ "England", "ENG", "🏴󠁧󠁢󠁥󠁮󠁧󠁿", "UEFA" ], [ "Croatia", "CRO", "🇭🇷", "UEFA" ],
+          [ "Ghana", "GHA", "🇬🇭", "CAF" ], [ "Panama", "PAN", "🇵🇦", "CONCACAF" ] ]
 }.freeze
 
 # The 16 real World Cup 2026 host stadiums.
@@ -91,7 +93,9 @@ PLAYER_NAMES = [
   "Hannah O'Brien", "Mateus Figueiredo", "Ingrid Sørensen", "Omar Haddad"
 ].freeze
 
-CONTENDER_CODES = %w[BRA FRA ARG ESP ENG GER POR NED ITA USA MEX URU].freeze
+# Champion-pick contenders — all present in the real draw above (no Italy: they
+# did not qualify for 2026).
+CONTENDER_CODES = %w[BRA FRA ARG ESP ENG GER POR NED BEL URU].freeze
 
 # Realistic-ish goal distribution (mean ~1.3 goals a side).
 GOAL_WEIGHTS = [ 0, 0, 0, 1, 1, 1, 1, 2, 2, 2, 3, 3, 4 ].freeze
@@ -164,10 +168,12 @@ ActiveRecord::Base.transaction do
   specs << { home: bracket[4], away: bracket[12], stadium: stadiums[10], kickoff: Time.zone.local(2026, 7, 18, 19), stage: :third_place }
   specs << { home: bracket[0], away: bracket[8], stadium: stadiums[5], kickoff: Time.zone.local(2026, 7, 19, 19), stage: :final }
 
-  # In production, shift the whole illustrative schedule forward so the earliest
-  # match kicks off ~3 days from now — every fixture is open for a fresh game.
+  # In production, shift the whole schedule forward so the earliest match kicks
+  # off SCHEDULE_LEAD_DAYS (default 2) from now — every fixture is open for a
+  # fresh game. Demo keeps the real-spread dates so past matches are scored.
+  lead = ENV.fetch("SCHEDULE_LEAD_DAYS", 2).to_i.days
   earliest = specs.map { |s| s[:kickoff] }.min
-  offset = SEED_DEMO ? 0.seconds : ((NOW + 3.days) - earliest)
+  offset = SEED_DEMO ? 0.seconds : ((NOW + lead) - earliest)
 
   puts "== Fixtures (#{specs.size}) =="
   real_kickoffs = {}
