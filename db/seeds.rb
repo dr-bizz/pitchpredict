@@ -9,8 +9,10 @@
 #     well-known password "worldcup2026".
 #
 #   * PRODUCTION (default in production) — reference data only: all 48 teams,
-#     the host stadiums, and the full fixture list shifted into the future so
-#     every match is open for predictions on a fresh game. NO demo accounts are
+#     the host stadiums, and the real fixture schedule on its true calendar
+#     dates (matches already kicked off are locked, awaiting results an admin
+#     enters). Set SCHEDULE_LEAD_DAYS to instead shift the whole schedule into
+#     the future so every match is open on a fresh game. NO demo accounts are
 #     created. A single admin is created from ADMIN_EMAIL / ADMIN_PASSWORD; if
 #     ADMIN_PASSWORD is unset a random one is generated and printed once.
 #
@@ -21,8 +23,9 @@
 # (matchups, dates, kickoff slots and host venues) are the REAL official
 # tournament data (Final Draw 5 Dec 2025). Only the knockout pairings are
 # illustrative — the qualifiers are unknown, so the bracket uses placeholders.
-# In production the whole schedule is shifted to start a couple of days from the
-# seed time so every match is open to predict ("fresh game").
+# Production mirrors the real calendar by default; set SCHEDULE_LEAD_DAYS to
+# shift the whole schedule into the future for a fresh game where every match is
+# open to predict.
 #
 # Kickoff times are stored/created in Eastern (config.time_zone), the app's
 # display zone, rounded to the published slot and kept on each match's real
@@ -220,12 +223,14 @@ ActiveRecord::Base.transaction do
   specs << { home: bracket[4], away: bracket[12], stadium: stadiums[10], kickoff: Time.zone.local(2026, 7, 18, 19), stage: :third_place }
   specs << { home: bracket[0], away: bracket[8], stadium: stadiums[5], kickoff: Time.zone.local(2026, 7, 19, 19), stage: :final }
 
-  # In production, shift the whole schedule forward so the earliest match kicks
-  # off SCHEDULE_LEAD_DAYS (default 2) from now — every fixture is open for a
-  # fresh game. Demo keeps the real-spread dates so past matches are scored.
-  lead = ENV.fetch("SCHEDULE_LEAD_DAYS", 2).to_i.days
+  # By default the schedule mirrors the REAL tournament calendar (offset 0).
+  # Optionally set SCHEDULE_LEAD_DAYS to shift the whole schedule forward so the
+  # earliest match kicks off that many days from now — a "fresh game" where every
+  # fixture is open to predict regardless of the real date. Demo always keeps the
+  # real dates (and backdates/scores the past matches below).
+  lead_days = ENV["SCHEDULE_LEAD_DAYS"].presence&.to_i
   earliest = specs.map { |s| s[:kickoff] }.min
-  offset = SEED_DEMO ? 0.seconds : ((NOW + lead) - earliest)
+  offset = (SEED_DEMO || lead_days.nil?) ? 0.seconds : ((NOW + lead_days.days) - earliest)
 
   puts "== Fixtures (#{specs.size}) =="
   real_kickoffs = {}
