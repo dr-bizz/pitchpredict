@@ -1,102 +1,157 @@
 <% content_for :title, "Dashboard" %>
 
+<%
+  # Derived view values from controller-provided data + models (read-only).
+  current_user_id = Current.user.id
+  first_name = Current.user.name.to_s.split(/\s+/).first.presence || Current.user.name
+
+  my_rank = @my_row&.rank
+  total_points = @total_points
+
+  # Unpredicted upcoming fixtures — "matches remaining" to predict.
+  predicted_fixture_ids = Current.user.predictions.pluck(:fixture_id).to_set
+  upcoming_fixtures = Fixture.upcoming.to_a
+  remaining_to_predict = upcoming_fixtures.count { |f| !predicted_fixture_ids.include?(f.id) }
+
+  stage_labels = {
+    "group" => "Group Stage", "r32" => "Round of 32", "r16" => "Round of 16",
+    "qf" => "Quarter-finals", "sf" => "Semi-finals",
+    "third_place" => "Third-place Play-off", "final" => "Final"
+  }
+  current_stage_key = upcoming_fixtures.first&.stage
+  stage_label = stage_labels[current_stage_key] || "Group Stage"
+
+  champion_team_id = @champion_pick&.team_id
+%>
+
 <div class="space-y-6">
-  <%# Hero %>
-  <section class="hero hero-gradient rounded-2xl px-5 py-8 shadow-md sm:px-8 sm:py-10">
-    <div class="hero-content w-full flex-col items-start gap-5 text-left">
-      <div>
-        <h1 class="text-2xl font-bold tracking-tight text-white sm:text-3xl">Hello <%= Current.user.name %> 👋</h1>
-        <p class="mt-2 text-sm text-white/90 sm:text-base">Welcome back — here's where your World Cup stands.</p>
-      </div>
-
-      <div class="stats stats-vertical w-full bg-white/15 text-white shadow-sm backdrop-blur sm:stats-horizontal sm:w-auto">
-        <div class="stat">
-          <div class="stat-title text-white/80">Matches predicted</div>
-          <div class="stat-value text-2xl text-white sm:text-3xl"><%= @predicted_count %> <span class="text-base font-normal text-white/70">of <%= @fixtures_count %></span></div>
-        </div>
-        <div class="stat">
-          <div class="stat-title text-white/80">Points</div>
-          <div class="stat-value text-2xl text-gold-light sm:text-3xl"><%= @total_points %></div>
-        </div>
-      </div>
-
-      <%= link_to "Continue predicting →", predictions_path, class: "btn btn-secondary btn-lg" %>
-    </div>
+  <%# 1. HERO %>
+  <section class="hero-gradient rounded-2xl px-5 py-8 text-white shadow-card sm:px-8 sm:py-10">
+    <h1 class="text-2xl font-bold tracking-tight sm:text-3xl">Hello, <%= first_name %> 👋</h1>
+    <p class="mt-2 text-sm text-white/90 sm:text-base">
+      <%= stage_label %> &middot; <%= pluralize(remaining_to_predict, "match") %> remaining to predict
+    </p>
+    <%= link_to "Continue predicting →", predictions_path,
+          class: "btn btn-secondary btn-lg mt-5 border-none text-charcoal shadow-md hover:brightness-95" %>
   </section>
 
-  <div class="grid gap-6 lg:grid-cols-2">
+  <%# 2. STAT ROW %>
+  <div class="grid grid-cols-1 gap-4 sm:grid-cols-3">
+    <div class="stat-tile">
+      <div class="stat-tile-label">Predicted</div>
+      <div class="stat-tile-value"><%= @predicted_count %>/<%= @fixtures_count %></div>
+      <div class="stat-tile-sub">matches</div>
+      <svg class="absolute right-4 top-4 h-7 w-7 text-pitch" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
+        <circle cx="12" cy="12" r="9" /><circle cx="12" cy="12" r="5" /><circle cx="12" cy="12" r="1.5" fill="currentColor" stroke="none" />
+      </svg>
+    </div>
+
+    <div class="stat-tile">
+      <div class="stat-tile-label">Points</div>
+      <div class="stat-tile-value text-gold-dark"><%= total_points %></div>
+      <div class="stat-tile-sub">total</div>
+      <svg class="absolute right-4 top-4 h-7 w-7 text-gold-dark" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M8 21h8m-4-4v4M6 4h12v3a6 6 0 0 1-12 0V4Zm0 1H4a2 2 0 0 0 0 4h2m12-4h2a2 2 0 0 1 0 4h-2" />
+      </svg>
+    </div>
+
+    <div class="stat-tile">
+      <div class="stat-tile-label">Rank</div>
+      <div class="stat-tile-value"><%= my_rank ? "##{my_rank}" : "—" %></div>
+      <div class="stat-tile-sub">global</div>
+      <svg class="absolute right-4 top-4 h-7 w-7 text-pitch" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M3 17l6-6 4 4 7-7m0 0h-5m5 0v5" />
+      </svg>
+    </div>
+  </div>
+
+  <%# 3. CHAMPION PICK + TOP PLAYERS %>
+  <div class="grid grid-cols-1 gap-6 lg:grid-cols-2">
     <%# Champion pick %>
-    <section class="card bg-base-100 shadow-md rounded-2xl">
+    <section class="card rounded-2xl bg-base-100 shadow-card">
       <div class="card-body">
-        <h2 class="section-title">Who will be the World Cup champion?</h2>
+        <div class="flex items-start justify-between gap-2">
+          <h2 class="text-lg font-bold text-charcoal">Champion Pick</h2>
+          <span class="badge badge-warning border-none font-semibold text-charcoal">+<%= ScoringService::CHAMPION_BONUS %> pts</span>
+        </div>
 
         <% if @champion_pick.present? %>
-          <div class="mt-4 flex items-center gap-3 rounded-xl bg-base-200 px-4 py-3 ring-1 ring-black/5">
+          <div class="mt-3 flex items-center gap-3 rounded-xl border border-gold/40 bg-gold-light/30 px-4 py-3">
             <span class="text-3xl" aria-hidden="true"><%= @champion_pick.team.flag_emoji %></span>
-            <div>
-              <p class="font-semibold text-charcoal"><%= @champion_pick.team.name %></p>
-              <p class="text-xs text-gray-500">Your champion pick &middot; worth +<%= ScoringService::CHAMPION_BONUS %> points if they lift the trophy</p>
+            <div class="min-w-0 flex-1">
+              <p class="truncate font-bold text-charcoal"><%= @champion_pick.team.name %></p>
+              <p class="text-xs text-gray-500">Your champion pick</p>
             </div>
+            <svg class="h-7 w-7 shrink-0 text-gold-dark" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M8 21h8m-4-4v4M6 4h12v3a6 6 0 0 1-12 0V4Zm0 1H4a2 2 0 0 0 0 4h2m12-4h2a2 2 0 0 1 0 4h-2" />
+            </svg>
           </div>
         <% end %>
 
         <% if @champion_locked %>
-          <div class="mt-4 flex items-center gap-2">
+          <div class="mt-3">
             <span class="badge badge-ghost">🔒 Picks locked — tournament underway</span>
           </div>
           <% if @champion_pick.nil? %>
             <p class="mt-3 text-sm text-gray-600">
-              You didn't make a champion pick before kickoff this time — no bonus on the line,
-              but your match predictions still count for everything else. Catch the picks window
-              early next tournament!
+              No champion pick was locked in before kickoff — no bonus on the line, but your
+              match predictions still count for everything else.
             </p>
           <% end %>
         <% else %>
-          <%= form_with model: @champion_pick || ChampionPick.new, scope: :champion_pick,
-                        url: champion_pick_path, class: "mt-4 flex flex-col gap-3 sm:flex-row sm:items-end" do |form| %>
-            <div class="flex-1">
-              <%= form.label :team_id, "Pick your champion", class: "label" %>
-              <%= form.collection_select :team_id, @teams, :id,
-                    ->(team) { "#{team.flag_emoji} #{team.name}" },
-                    { prompt: "Choose a team…" }, class: "select select-bordered w-full" %>
-            </div>
-            <%= form.submit(@champion_pick ? "Update pick" : "Save pick", class: "btn btn-primary") %>
-          <% end %>
-          <p class="mt-3 text-xs text-gray-500">Locks at the opening kickoff. Correct pick earns a +<%= ScoringService::CHAMPION_BONUS %> point bonus.</p>
+          <p class="mt-4 text-xs font-semibold uppercase tracking-wide text-gray-500">Change pick</p>
+          <div class="mt-2 flex flex-wrap gap-2">
+            <% @teams.each do |team| %>
+              <%= button_to champion_pick_path, method: :patch, params: { champion_pick: { team_id: team.id } },
+                    form_class: "inline-flex",
+                    class: "chip #{'chip-active' if team.id == champion_team_id}" do %>
+                <span aria-hidden="true"><%= team.flag_emoji %></span>
+                <span><%= team.name %></span>
+              <% end %>
+            <% end %>
+          </div>
         <% end %>
       </div>
     </section>
 
-    <%# Top 5 leaderboard %>
-    <section class="card bg-base-100 shadow-md rounded-2xl">
+    <%# Top players %>
+    <section class="card rounded-2xl bg-base-100 shadow-card">
       <div class="card-body">
         <div class="flex items-center justify-between gap-2">
-          <h2 class="section-title">Top 5 on the leaderboard</h2>
-          <%= link_to "Full leaderboard →", leaderboard_path, class: "text-sm font-semibold text-pitch hover:text-pitch-dark" %>
+          <h2 class="text-lg font-bold text-charcoal">Top Players</h2>
+          <%= link_to "Full table →", leaderboard_path, class: "text-sm font-semibold text-pitch hover:text-pitch-dark" %>
         </div>
 
-        <% if @top_rows.any? %>
+        <% top_players = LeaderboardService.fetch_rows.first(5) %>
+        <% if top_players.any? %>
           <div class="mt-4 overflow-x-auto">
             <table class="table table-sm">
               <thead>
-                <tr>
-                  <th class="w-8">#</th>
+                <tr class="text-xs uppercase tracking-wide text-gray-400">
+                  <th class="w-10">Rank</th>
                   <th>Player</th>
-                  <th class="hidden text-right sm:table-cell">Predictions</th>
-                  <th class="text-right">Points</th>
+                  <th class="text-right">Pts</th>
                 </tr>
               </thead>
               <tbody>
-                <% @top_rows.each do |row| %>
-                  <tr class="<%= "bg-gold-light/20" if row.user.id == Current.user.id %>">
-                    <td class="font-bold <%= row.rank == 1 ? "text-gold-dark" : "text-gray-400" %>">
-                      <%= row.rank == 1 ? "🏆" : row.rank %>
+                <% medals = { 1 => "🥇", 2 => "🥈", 3 => "🥉" } %>
+                <% top_players.each do |row| %>
+                  <% is_you = row.user.id == current_user_id %>
+                  <tr class="<%= "bg-pitch-light" if is_you %>">
+                    <td class="text-lg font-bold">
+                      <%= medals[row.rank] || "##{row.rank}" %>
                     </td>
-                    <td class="font-medium text-charcoal">
-                      <%= row.user.name %><%= " (you)" if row.user.id == Current.user.id %>
+                    <td>
+                      <div class="flex items-center gap-2">
+                        <span class="avatar-initial <%= is_you ? "avatar-initial-you" : "avatar-initial-muted" %> h-8 w-8 text-sm">
+                          <%= row.user.name.to_s.first&.upcase %>
+                        </span>
+                        <span class="font-medium text-charcoal">
+                          <%= row.user.name %><%= " (you)" if is_you %>
+                        </span>
+                      </div>
                     </td>
-                    <td class="hidden text-right text-xs text-gray-400 sm:table-cell"><%= row.predictions_count %></td>
-                    <td class="text-right"><span class="badge badge-warning"><%= row.total_points %> pts</span></td>
+                    <td class="text-right font-bold text-gold-dark"><%= row.total_points %></td>
                   </tr>
                 <% end %>
               </tbody>
@@ -109,40 +164,38 @@
     </section>
   </div>
 
-  <%# How it works %>
-  <section class="card bg-base-100 shadow-md rounded-2xl">
+  <%# 4. HOW IT WORKS %>
+  <section class="card rounded-2xl bg-base-100 shadow-card">
     <div class="card-body">
-      <h2 class="section-title">How it works</h2>
-      <div class="mt-4 grid gap-6 sm:grid-cols-2">
-        <div>
-          <h3 class="text-sm font-semibold uppercase tracking-wide text-gray-500">Scoring</h3>
-          <ul class="mt-3 space-y-2 text-sm text-gray-700">
-            <li class="flex items-center gap-2">
-              <span class="badge badge-warning"><%= ScoringService::EXACT_POINTS %> pts</span> Exact score
-            </li>
-            <li class="flex items-center gap-2">
-              <span class="badge badge-warning"><%= ScoringService::DIFFERENCE_POINTS %> pts</span> Correct goal difference
-            </li>
-            <li class="flex items-center gap-2">
-              <span class="badge badge-warning"><%= ScoringService::TENDENCY_POINTS %> pts</span> Correct outcome (win/draw/loss)
-            </li>
-            <li class="flex items-center gap-2">
-              <span class="badge badge-ghost">0 pts</span> Wrong outcome
-            </li>
-            <li class="flex items-center gap-2">
-              <span class="badge badge-warning">+<%= ScoringService::CHAMPION_BONUS %> pts</span> Champion pick bonus
-            </li>
-          </ul>
+      <h2 class="text-sm font-semibold uppercase tracking-wide text-gray-500">How it works</h2>
+
+      <div class="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-4">
+        <div class="score-tile">
+          <div class="score-tile-num score-tile-green">+<%= ScoringService::EXACT_POINTS %></div>
+          <div class="score-tile-label">Exact score</div>
         </div>
-        <div>
-          <h3 class="text-sm font-semibold uppercase tracking-wide text-gray-500">League rules</h3>
-          <ul class="mt-3 list-disc space-y-2 pl-5 text-sm text-gray-700">
-            <li>Predict the score of any match before its kickoff.</li>
-            <li>Predictions lock at kickoff — no edits once the whistle blows.</li>
-            <li>Pick your champion before the opening match for the bonus.</li>
-            <li>Points land automatically as soon as full-time results are in.</li>
-          </ul>
+        <div class="score-tile">
+          <div class="score-tile-num score-tile-teal">+<%= ScoringService::DIFFERENCE_POINTS %></div>
+          <div class="score-tile-label">Goal difference</div>
         </div>
+        <div class="score-tile">
+          <div class="score-tile-num score-tile-gold">+<%= ScoringService::TENDENCY_POINTS %></div>
+          <div class="score-tile-label">Correct result</div>
+        </div>
+        <div class="score-tile">
+          <div class="score-tile-num score-tile-red">+0</div>
+          <div class="score-tile-label">Wrong result</div>
+        </div>
+      </div>
+
+      <div role="alert" class="alert mt-4 border-none bg-gold-light/40 text-charcoal">
+        <svg class="h-5 w-5 shrink-0 text-gold-dark" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M8 21h8m-4-4v4M6 4h12v3a6 6 0 0 1-12 0V4Zm0 1H4a2 2 0 0 0 0 4h2m12-4h2a2 2 0 0 1 0 4h-2" />
+        </svg>
+        <span class="text-sm">
+          <span class="font-semibold">+<%= ScoringService::CHAMPION_BONUS %> pts</span> for correct champion pick
+          &middot; Predictions lock at kickoff
+        </span>
       </div>
     </div>
   </section>

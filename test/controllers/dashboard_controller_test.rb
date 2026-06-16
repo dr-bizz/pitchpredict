@@ -15,11 +15,15 @@ class DashboardControllerTest < ActionDispatch::IntegrationTest
     get root_path
 
     assert_response :success
-    assert_select "h1", text: /Hello #{@user.name}/
-    assert_select "section", text: /Matches predicted\s+1 of #{Fixture.count}/m
+    # Hero greets the user by first name with a comma + wave (redesigned hero).
+    first_name = @user.name.split.first
+    assert_select "h1", text: /Hello, #{first_name}/
+    # Prediction summary is the PREDICTED stat tile: "<predicted>/<total>".
+    assert_select ".stat-tile", text: /Predicted/
+    assert_select ".stat-tile-value", text: "1/#{Fixture.count}"
     assert_select "a[href=?]", predictions_path, text: /Continue predicting/
     assert_select "a[href=?]", leaderboard_path
-    assert_select "h2", text: "Top 5 on the leaderboard"
+    assert_select "h2", text: "Top Players"
     assert_select "h2", text: "How it works"
   end
 
@@ -36,15 +40,20 @@ class DashboardControllerTest < ActionDispatch::IntegrationTest
     assert_select "select[name='champion_pick[team_id]']", count: 0
   end
 
-  test "shows team select when tournament has not started" do
+  test "shows champion pick chips when tournament has not started" do
     Fixture.update_all(kickoff_at: 3.days.from_now, status: :scheduled, home_score: nil, away_score: nil)
     sign_in_as(@user)
 
     get root_path
 
     assert_response :success
-    assert_select "form[action=?]", champion_pick_path do
-      assert_select "select[name='champion_pick[team_id]']"
+    # Unlocked "Change pick" state renders one button_to PATCH form per team
+    # (outlined .chip pills) instead of the old <select>.
+    assert_select "p", text: "Change pick"
+    assert_select "form[action=?][method=post]", champion_pick_path do
+      assert_select "input[name=_method][value=patch]"
+      assert_select "input[name='champion_pick[team_id]']"
+      assert_select "button.chip"
     end
     assert_no_match "Picks locked", response.body
   end
