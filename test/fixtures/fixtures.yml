@@ -1,6 +1,7 @@
 # NOTE: kickoff times are relative so "upcoming" stays upcoming and "finished"
-# stays in the past regardless of when the suite runs. The finished fixture also
-# means ChampionPick.tournament_started? is true in the test database.
+# stays in the past regardless of when the suite runs. Champion-pick locking is
+# now time-based (ChampionPick::PICK_DEADLINE), so tests travel_to control it
+# rather than relying on fixture kickoff times.
 upcoming_group:
   home_team: spain
   away_team: canada
