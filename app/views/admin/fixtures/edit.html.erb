@@ -12,7 +12,7 @@
   <ul>
     <li><%= link_to "Admin", admin_fixtures_path %></li>
     <li><%= link_to "Fixtures", admin_fixtures_path %></li>
-    <li><%= @fixture.home_team.code %> vs <%= @fixture.away_team.code %></li>
+    <li><%= @fixture.home_display %> vs <%= @fixture.away_display %></li>
   </ul>
 </div>
 
@@ -25,7 +25,7 @@
       </div>
 
       <h1 class="page-title mt-3 text-2xl font-extrabold tracking-tight">
-        <%= @fixture.home_team.name %> <span class="font-normal text-base-content/40">vs</span> <%= @fixture.away_team.name %>
+        <%= @fixture.home_display %> <span class="font-normal text-base-content/40">vs</span> <%= @fixture.away_display %>
       </h1>
       <p class="mt-1 text-sm text-base-content/60">
         <%= kickoff_label(@fixture, style: :long) %> ·
@@ -48,12 +48,12 @@
 
         <div class="grid grid-cols-2 gap-4">
           <div class="form-control">
-            <%= form.label :home_score, "#{@fixture.home_team.name} (#{@fixture.home_team.code})", class: "label label-text font-semibold" %>
+            <%= form.label :home_score, @fixture.home_display, class: "label label-text font-semibold" %>
             <%= form.number_field :home_score, min: 0, step: 1, required: true, inputmode: "numeric",
                   placeholder: "0", class: "input input-bordered w-full text-center text-2xl font-bold tabular-nums" %>
           </div>
           <div class="form-control">
-            <%= form.label :away_score, "#{@fixture.away_team.name} (#{@fixture.away_team.code})", class: "label label-text font-semibold" %>
+            <%= form.label :away_score, @fixture.away_display, class: "label label-text font-semibold" %>
             <%= form.number_field :away_score, min: 0, step: 1, required: true, inputmode: "numeric",
                   placeholder: "0", class: "input input-bordered w-full text-center text-2xl font-bold tabular-nums" %>
           </div>

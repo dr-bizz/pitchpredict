@@ -22,6 +22,8 @@ module Admin
       get admin_knockout_fixtures_path
       assert_response :success
       assert_includes response.body, "Winner Group A"
+      assert_select "form[action=?]", admin_knockout_fixture_path(@ko)
+      assert_select "select[name='fixture[home_team_id]']"
     end
 
     test "assigning both teams makes the match predictable" do
