@@ -81,4 +81,16 @@ class FixturesControllerTest < ActionDispatch::IntegrationTest
     assert_select "a[aria-current=page]", text: "Upcoming"
     assert_select "turbo-frame#prediction_fixture_#{fixtures(:upcoming_group).id}"
   end
+
+  test "knockout fixture with unknown teams renders as a non-predictable TBD card" do
+    sign_in_as users(:one)
+    ko = Fixture.create!(stadium: stadia(:metlife), kickoff_at: 20.days.from_now,
+                         stage: :r32, home_slot_label: "Winner Group A",
+                         away_slot_label: "Runner-up Group B", match_number: 73)
+    get predictions_path(stage: "r32")
+    assert_response :success
+    assert_includes response.body, "Winner Group A"
+    assert_includes response.body, "Runner-up Group B"
+    assert_select "form[action=?]", fixture_prediction_path(ko), count: 0
+  end
 end

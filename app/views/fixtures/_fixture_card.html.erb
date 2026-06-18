@@ -74,6 +74,28 @@
         </span>
       </footer>
 
+    <% elsif !fixture.teams_known? %>
+      <%# --- Teams not announced yet: descriptive slot labels, no form --- %>
+      <div class="flex items-center justify-between gap-3">
+        <div class="flex min-w-0 flex-1 flex-col items-center gap-1.5 text-center">
+          <span class="text-3xl leading-none" aria-hidden="true">🏳️</span>
+          <span class="truncate w-full text-sm font-semibold text-charcoal/60"><%= fixture.home_slot_label || "TBD" %></span>
+        </div>
+        <div class="shrink-0 px-1 text-xs font-semibold uppercase tracking-wide text-charcoal/40">vs</div>
+        <div class="flex min-w-0 flex-1 flex-col items-center gap-1.5 text-center">
+          <span class="text-3xl leading-none" aria-hidden="true">🏳️</span>
+          <span class="truncate w-full text-sm font-semibold text-charcoal/60"><%= fixture.away_slot_label || "TBD" %></span>
+        </div>
+      </div>
+      <div class="mt-auto flex flex-col items-center gap-1.5">
+        <p class="flex items-center gap-1 text-xs text-charcoal/50">
+          <svg class="h-3.5 w-3.5" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+            <path fill-rule="evenodd" d="M10 1a4.5 4.5 0 0 0-4.5 4.5V9H5a2 2 0 0 0-2 2v6a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-6a2 2 0 0 0-2-2h-.5V5.5A4.5 4.5 0 0 0 10 1Zm3 8V5.5a3 3 0 1 0-6 0V9h6Z" clip-rule="evenodd" />
+          </svg>
+          Teams to be announced
+        </p>
+      </div>
+
     <% elsif fixture.locked? %>
       <%# --- Locked (kicked off, no result yet): greyed disabled inputs + lock note --- %>
       <div class="flex items-center justify-between gap-3">
