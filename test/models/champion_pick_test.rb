@@ -1,17 +1,16 @@
 require "test_helper"
 
 class ChampionPickTest < ActiveSupport::TestCase
-  # NOTE: the fixtures include a finished match, so the tournament counts as
-  # started in the test database unless those fixtures are removed or re-dated.
-  test "tournament_started? reflects the earliest kickoff" do
-    assert ChampionPick.tournament_started?
+  test "picks_locked? flips at the deadline" do
+    travel_to ChampionPick::PICK_DEADLINE - 1.second
+    assert_not ChampionPick.picks_locked?
 
-    Prediction.delete_all
-    Fixture.delete_all
-    assert_not ChampionPick.tournament_started?
+    travel_to ChampionPick::PICK_DEADLINE
+    assert ChampionPick.picks_locked?
   end
 
-  test "cannot create a pick or change the team once the tournament has started" do
+  test "cannot create a pick or change the team once picks are locked" do
+    travel_to ChampionPick::PICK_DEADLINE + 1.hour
     pick = ChampionPick.new(user: users(:one), team: teams(:france))
     assert_not pick.valid?
     assert pick.errors[:base].any?
@@ -21,8 +20,8 @@ class ChampionPickTest < ActiveSupport::TestCase
     assert_not existing.valid?
   end
 
-  test "picks are open before the first kickoff" do
-    fixtures(:finished_group).update_columns(kickoff_at: 1.day.from_now)
+  test "picks are open before the deadline" do
+    travel_to ChampionPick::PICK_DEADLINE - 1.day
     champion_picks(:two).destroy!
 
     pick = ChampionPick.new(user: users(:two), team: teams(:france))

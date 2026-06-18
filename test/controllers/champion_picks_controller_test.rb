@@ -43,9 +43,8 @@ class ChampionPicksControllerTest < ActionDispatch::IntegrationTest
     assert_equal teams(:canada), @user.reload.champion_pick.team
   end
 
-  test "rejects a team change once the tournament has started" do
-    # NOTE: fixture finished_group kicked off in the past, so the tournament
-    # already counts as started in the test DB.
+  test "rejects a team change once picks are locked" do
+    travel_to ChampionPick::PICK_DEADLINE + 1.hour
     original_team = @user.champion_pick.team
     sign_in_as(@user)
 
@@ -68,9 +67,9 @@ class ChampionPicksControllerTest < ActionDispatch::IntegrationTest
 
   private
 
-  # Re-date every fixture into the future so ChampionPick.tournament_started?
-  # is false (same pattern as test/models/champion_pick_test.rb).
+  # Travel to before the champion-pick deadline so picks are still open
+  # (same pattern as test/models/champion_pick_test.rb).
   def unlock_tournament
-    Fixture.update_all(kickoff_at: 3.days.from_now, status: :scheduled, home_score: nil, away_score: nil)
+    travel_to ChampionPick::PICK_DEADLINE - 1.day
   end
 end

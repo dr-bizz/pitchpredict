@@ -3,14 +3,17 @@ class ChampionPick < ApplicationRecord
   belongs_to :team
 
   validates :user_id, uniqueness: { message: "already has a champion pick" }
-  # NOTE: lock rule — champion picks freeze once the tournament starts, i.e. once
-  # the earliest fixture's kickoff_at has passed. Creating a pick or changing the
-  # chosen team after that point is rejected; other updates are unaffected.
-  validate :tournament_must_not_have_started, if: :team_choice_changed?
+  # NOTE: lock rule — champion picks freeze at a fixed deadline (see PICK_DEADLINE
+  # below) rather than at the tournament's opening kickoff, giving everyone a
+  # window to get their pick in. Creating a pick or changing the chosen team after
+  # that point is rejected; other updates are unaffected.
+  validate :picks_must_not_be_locked, if: :team_choice_changed?
 
-  def self.tournament_started?
-    first_kickoff = Fixture.minimum(:kickoff_at)
-    first_kickoff.present? && first_kickoff <= Time.current
+  # Sat June 20 2026, 6:00 PM US Eastern (EDT, UTC-4) == 22:00 UTC.
+  PICK_DEADLINE = Time.utc(2026, 6, 20, 22, 0, 0).freeze
+
+  def self.picks_locked?
+    Time.current >= PICK_DEADLINE
   end
 
   private
@@ -19,7 +22,7 @@ class ChampionPick < ApplicationRecord
     new_record? || will_save_change_to_team_id?
   end
 
-  def tournament_must_not_have_started
-    errors.add(:base, "Champion picks are locked once the tournament has started") if self.class.tournament_started?
+  def picks_must_not_be_locked
+    errors.add(:base, "Champion picks are locked after the deadline") if self.class.picks_locked?
   end
 end
