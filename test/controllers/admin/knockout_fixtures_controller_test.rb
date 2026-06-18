@@ -31,6 +31,8 @@ module Admin
       patch admin_knockout_fixture_path(@ko),
             params: { fixture: { home_team_id: teams(:spain).id, away_team_id: teams(:canada).id } }
       assert_redirected_to admin_knockout_fixtures_path
+      assert_match "Saved", flash[:notice]
+      assert_match teams(:spain).name, flash[:notice]
       @ko.reload
       assert @ko.teams_known?
       assert @ko.open_for_predictions?

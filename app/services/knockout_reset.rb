@@ -25,20 +25,26 @@ class KnockoutReset
     end
   end
 
+  # Assign labels/numbers per stage, matching each stage's fixtures (in kickoff
+  # order) to that stage's specs (in match-number order). Pairing within a stage
+  # avoids depending on a single global sort lining up across stages, and a count
+  # mismatch raises loudly rather than silently leaving a half-reset bracket.
   def reset_knockout_fixtures
-    specs = KnockoutBracket.specs.sort_by { |s| s[:match_number] }
-    knockouts = Fixture.where.not(stage: GROUP).order(:stage, :kickoff_at, :id).to_a
+    KnockoutBracket.specs.group_by { |s| s[:stage] }.each do |stage, specs|
+      fixtures = Fixture.where(stage: Fixture.stages[stage]).order(:kickoff_at, :id).to_a
+      if fixtures.size != specs.size
+        raise "KnockoutReset: expected #{specs.size} #{stage} fixtures, found #{fixtures.size}"
+      end
 
-    knockouts.zip(specs).each do |fixture, spec|
-      next unless spec
-
-      Prediction.where(fixture_id: fixture.id).delete_all
-      fixture.update_columns(
-        home_team_id: nil, away_team_id: nil, home_score: nil, away_score: nil,
-        status: 0, # scheduled
-        home_slot_label: spec[:home_label], away_slot_label: spec[:away_label],
-        match_number: spec[:match_number]
-      )
+      fixtures.zip(specs.sort_by { |s| s[:match_number] }).each do |fixture, spec|
+        Prediction.where(fixture_id: fixture.id).delete_all
+        fixture.update_columns(
+          home_team_id: nil, away_team_id: nil, home_score: nil, away_score: nil,
+          status: 0, # scheduled
+          home_slot_label: spec[:home_label], away_slot_label: spec[:away_label],
+          match_number: spec[:match_number]
+        )
+      end
     end
   end
 end

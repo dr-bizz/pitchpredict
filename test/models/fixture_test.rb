@@ -82,4 +82,13 @@ class FixtureTest < ActiveSupport::TestCase
     assert_equal "🏳️", tbd.home_flag
     assert_equal "Spain", fixtures(:upcoming_group).home_display
   end
+
+  test "a knockout fixture cannot be finished while its teams are unknown" do
+    tbd = Fixture.create!(stadium: stadia(:metlife), kickoff_at: 20.days.from_now,
+                          stage: :r32, home_slot_label: "Winner Group A",
+                          away_slot_label: "Runner-up Group B", match_number: 73)
+    tbd.assign_attributes(status: :finished, home_score: 2, away_score: 1)
+    assert_not tbd.valid?
+    assert tbd.errors.added?(:base, "Cannot finish a match before both teams are known")
+  end
 end

@@ -91,6 +91,11 @@ class FixturesControllerTest < ActionDispatch::IntegrationTest
     assert_response :success
     assert_includes response.body, "Winner Group A"
     assert_includes response.body, "Runner-up Group B"
-    assert_select "form[action=?]", fixture_prediction_path(ko), count: 0
+    # The TBD card renders no prediction form and no editable score inputs, and
+    # shows the "Teams to be announced" affordance instead.
+    frame = "turbo-frame#prediction_fixture_#{ko.id}"
+    assert_select "#{frame} form", count: 0
+    assert_select "#{frame} input", count: 0
+    assert_select frame, text: /Teams to be announced/
   end
 end

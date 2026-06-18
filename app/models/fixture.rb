@@ -18,6 +18,7 @@ class Fixture < ApplicationRecord
   validate :teams_must_differ
   validate :group_fixtures_have_teams
   validate :teams_present_together
+  validate :finished_requires_teams
 
   scope :upcoming, -> { where(kickoff_at: Time.current..).order(:kickoff_at) }
   scope :past, -> { where(kickoff_at: ...Time.current).order(kickoff_at: :desc) }
@@ -65,5 +66,14 @@ class Fixture < ApplicationRecord
     return if home_team_id.present? == away_team_id.present?
 
     errors.add(:base, "Both teams must be set together")
+  end
+
+  # A match can't be marked finished (a result entered) until both qualifiers are
+  # known — otherwise a finished knockout fixture could hold nil teams, which the
+  # views and scoring assume never happens.
+  def finished_requires_teams
+    return unless finished?
+
+    errors.add(:base, "Cannot finish a match before both teams are known") unless teams_known?
   end
 end

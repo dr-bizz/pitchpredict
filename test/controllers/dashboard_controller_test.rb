@@ -27,34 +27,38 @@ class DashboardControllerTest < ActionDispatch::IntegrationTest
     assert_select "h2", text: "How it works"
   end
 
-  test "shows locked champion pick state when tournament has started" do
-    # NOTE: fixture finished_group kicked off in the past, so the tournament
-    # counts as started in the test DB.
+  test "shows locked champion pick state once the pick deadline has passed" do
+    # Champion picks lock at a fixed deadline (ChampionPick::PICK_DEADLINE), not
+    # at first kickoff, so travel past it to exercise the locked state regardless
+    # of the wall-clock date the suite runs on.
     sign_in_as(@user)
 
-    get root_path
+    travel_to ChampionPick::PICK_DEADLINE + 1.hour do
+      get root_path
 
-    assert_response :success
-    assert_match "Picks locked", response.body
-    assert_match @user.champion_pick.team.name, response.body
-    assert_select "select[name='champion_pick[team_id]']", count: 0
+      assert_response :success
+      assert_match "Picks locked", response.body
+      assert_match @user.champion_pick.team.name, response.body
+      assert_select "select[name='champion_pick[team_id]']", count: 0
+    end
   end
 
-  test "shows champion pick chips when tournament has not started" do
-    Fixture.update_all(kickoff_at: 3.days.from_now, status: :scheduled, home_score: nil, away_score: nil)
+  test "shows champion pick chips before the pick deadline" do
     sign_in_as(@user)
 
-    get root_path
+    travel_to ChampionPick::PICK_DEADLINE - 1.day do
+      get root_path
 
-    assert_response :success
-    # Unlocked "Change pick" state renders one button_to PATCH form per team
-    # (outlined .chip pills) instead of the old <select>.
-    assert_select "p", text: "Change pick"
-    assert_select "form[action=?][method=post]", champion_pick_path do
-      assert_select "input[name=_method][value=patch]"
-      assert_select "input[name='champion_pick[team_id]']"
-      assert_select "button.chip"
+      assert_response :success
+      # Unlocked "Change pick" state renders one button_to PATCH form per team
+      # (outlined .chip pills) instead of the old <select>.
+      assert_select "p", text: "Change pick"
+      assert_select "form[action=?][method=post]", champion_pick_path do
+        assert_select "input[name=_method][value=patch]"
+        assert_select "input[name='champion_pick[team_id]']"
+        assert_select "button.chip"
+      end
+      assert_no_match "Picks locked", response.body
     end
-    assert_no_match "Picks locked", response.body
   end
 end

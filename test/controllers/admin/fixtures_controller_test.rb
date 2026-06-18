@@ -94,5 +94,21 @@ module Admin
       assert_redirected_to root_path
       assert @fixture.reload.scheduled?
     end
+
+    test "cannot enter a result for a TBD knockout fixture" do
+      sign_in_as @admin
+      tbd = Fixture.create!(stadium: stadia(:metlife), kickoff_at: 25.days.from_now, stage: :r32,
+                            home_slot_label: "Winner Group A", away_slot_label: "Runner-up Group B",
+                            match_number: 73)
+
+      assert_no_enqueued_jobs only: ScoreFixtureJob do
+        patch admin_fixture_path(tbd), params: { fixture: { home_score: 2, away_score: 1 } }
+      end
+
+      assert_redirected_to admin_knockout_fixtures_path
+      tbd.reload
+      assert tbd.scheduled?
+      assert_nil tbd.home_score
+    end
   end
 end
