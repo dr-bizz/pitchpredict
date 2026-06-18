@@ -25,6 +25,7 @@ Rails.application.routes.draw do
   # Admin: enter/correct results, which triggers rescoring.
   namespace :admin do
     resources :fixtures, only: %i[ index edit update ]
+    resources :knockout_fixtures, only: %i[ index update ]
   end
 
   # Reveal health status on /up that returns 200 if the app boots with no exceptions, otherwise 500.

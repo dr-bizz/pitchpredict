@@ -4,10 +4,10 @@ class DashboardController < ApplicationController
     @top_rows = leaderboard_rows.first(5)
     @my_row = leaderboard_rows.find { |row| row.user.id == Current.user.id }
 
-    # NOTE: assumption — "N matches predicted" counts every seeded fixture as
-    # predictable, including knockout games whose pairings are already known
-    # (the seeds create the full 104-match schedule up front).
-    @fixtures_count = Fixture.count
+    # "N matches predicted" only counts matches a player can actually predict.
+    # Knockout fixtures stay TBD (nil teams) until an admin enters the qualifiers,
+    # so they are excluded from the denominator until both teams are known.
+    @fixtures_count = Fixture.where.not(home_team_id: nil).where.not(away_team_id: nil).count
     @predicted_count = Current.user.predictions.count
     @total_points = @my_row&.total_points || 0
 

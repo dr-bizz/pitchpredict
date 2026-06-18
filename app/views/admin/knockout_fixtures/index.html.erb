@@ -1,0 +1,56 @@
+<%# app/views/admin/knockout_fixtures/index.html.erb %>
+<% content_for :title, "Admin · Knockout bracket · PitchPredict" %>
+
+<div class="space-y-6">
+  <header class="flex flex-wrap items-center gap-3">
+    <div>
+      <h1 class="page-title text-2xl font-extrabold uppercase tracking-tight sm:text-3xl">Knockout bracket</h1>
+      <p class="text-sm text-base-content/60">Enter each match's teams as the bracket is announced. A match opens for predictions once both teams are set.</p>
+    </div>
+    <%= link_to "← Results", admin_fixtures_path, class: "btn btn-ghost btn-sm ml-auto" %>
+  </header>
+
+  <div class="alert alert-info rounded-2xl" role="status">
+    <span>Leave both as <strong>TBD</strong> until the qualifier is known. Clearing both resets a match to TBD.</span>
+  </div>
+
+  <% @fixtures.group_by(&:stage).each do |stage, fixtures| %>
+    <section class="space-y-3">
+      <h2 class="section-title"><%= stage_label(stage) %></h2>
+      <div class="space-y-3">
+        <% fixtures.each do |fixture| %>
+          <%= form_with model: fixture, url: admin_knockout_fixture_path(fixture), method: :patch,
+                        class: "card bg-base-100 shadow-card rounded-2xl" do |form| %>
+            <div class="card-body gap-3 p-4">
+              <div class="flex items-center justify-between text-xs text-base-content/50">
+                <span class="font-mono">Match <%= fixture.match_number %> · <%= stage_label(fixture.stage) %></span>
+                <span><%= kickoff_label(fixture) %> · <%= fixture.stadium.name %></span>
+              </div>
+              <div class="grid items-end gap-3 sm:grid-cols-[1fr_auto_1fr]">
+                <label class="form-control">
+                  <span class="label label-text text-xs text-base-content/60"><%= fixture.home_slot_label %></span>
+                  <%= form.collection_select :home_team_id, @teams, :id, :name,
+                        { include_blank: "TBD — not announced", selected: fixture.home_team_id },
+                        class: "select select-bordered w-full" %>
+                </label>
+                <span class="hidden pb-3 text-xs font-semibold uppercase text-base-content/40 sm:block">vs</span>
+                <label class="form-control">
+                  <span class="label label-text text-xs text-base-content/60"><%= fixture.away_slot_label %></span>
+                  <%= form.collection_select :away_team_id, @teams, :id, :name,
+                        { include_blank: "TBD — not announced", selected: fixture.away_team_id },
+                        class: "select select-bordered w-full" %>
+                </label>
+              </div>
+              <div class="flex items-center justify-between">
+                <span class="text-xs <%= fixture.teams_known? ? "text-success" : "text-base-content/40" %>">
+                  <%= fixture.teams_known? ? "Open for predictions" : "Awaiting teams" %>
+                </span>
+                <%= form.submit "Save", class: "btn btn-primary btn-sm" %>
+              </div>
+            </div>
+          <% end %>
+        <% end %>
+      </div>
+    </section>
+  <% end %>
+</div>

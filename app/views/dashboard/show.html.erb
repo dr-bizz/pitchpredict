@@ -8,10 +8,11 @@
   my_rank = @my_row&.rank
   total_points = @total_points
 
-  # Unpredicted upcoming fixtures — "matches remaining" to predict.
+  # Unpredicted upcoming fixtures — "matches remaining" to predict. TBD knockout
+  # matches (teams not yet announced) aren't predictable, so they don't count.
   predicted_fixture_ids = Current.user.predictions.pluck(:fixture_id).to_set
   upcoming_fixtures = Fixture.upcoming.to_a
-  remaining_to_predict = upcoming_fixtures.count { |f| !predicted_fixture_ids.include?(f.id) }
+  remaining_to_predict = upcoming_fixtures.count { |f| f.teams_known? && !predicted_fixture_ids.include?(f.id) }
 
   stage_labels = {
     "group" => "Group Stage", "r32" => "Round of 32", "r16" => "Round of 16",

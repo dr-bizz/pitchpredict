@@ -1,6 +1,5 @@
 module Admin
-  class FixturesController < ApplicationController
-    before_action :require_admin
+  class FixturesController < BaseController
     before_action :set_fixture, only: %i[ edit update ]
 
     def index
@@ -22,12 +21,20 @@ module Admin
     end
 
     def update
+      # A knockout match's teams must be set (via the knockout bracket screen)
+      # before a result can be entered — guard here for a friendly message; the
+      # Fixture model also refuses to finish a teams-unknown match.
+      unless @fixture.teams_known?
+        return redirect_to admin_knockout_fixtures_path,
+                           alert: "Set both teams for this match before entering a result."
+      end
+
       # Entering a result always marks the fixture finished; the Fixture model
       # validates that both scores are then present and >= 0.
       if @fixture.update(result_params.merge(status: :finished))
         ScoreFixtureJob.perform_later(@fixture.id)
         redirect_to admin_fixtures_path,
-                    notice: "Result saved: #{@fixture.home_team.name} #{@fixture.home_score}–#{@fixture.away_score} #{@fixture.away_team.name}. Predictions are being scored."
+                    notice: "Result saved: #{@fixture.home_display} #{@fixture.home_score}–#{@fixture.away_score} #{@fixture.away_display}. Predictions are being scored."
       else
         render :edit, status: :unprocessable_entity
       end
@@ -41,12 +48,6 @@ module Admin
 
     def result_params
       params.expect(fixture: [ :home_score, :away_score ])
-    end
-
-    def require_admin
-      return if Current.user&.admin?
-
-      redirect_to root_path, alert: "You don't have access to the admin area."
     end
   end
 end

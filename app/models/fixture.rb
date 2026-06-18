@@ -1,6 +1,6 @@
 class Fixture < ApplicationRecord
-  belongs_to :home_team, class_name: "Team", inverse_of: :home_fixtures
-  belongs_to :away_team, class_name: "Team", inverse_of: :away_fixtures
+  belongs_to :home_team, class_name: "Team", inverse_of: :home_fixtures, optional: true
+  belongs_to :away_team, class_name: "Team", inverse_of: :away_fixtures, optional: true
   belongs_to :stadium
   has_many :predictions, dependent: :destroy
 
@@ -16,6 +16,9 @@ class Fixture < ApplicationRecord
   # NOTE: assumption — a finished fixture must have both scores recorded.
   validates :home_score, :away_score, presence: true, if: :finished?
   validate :teams_must_differ
+  validate :group_fixtures_have_teams
+  validate :teams_present_together
+  validate :finished_requires_teams
 
   scope :upcoming, -> { where(kickoff_at: Time.current..).order(:kickoff_at) }
   scope :past, -> { where(kickoff_at: ...Time.current).order(kickoff_at: :desc) }
@@ -30,11 +33,47 @@ class Fixture < ApplicationRecord
     kickoff_at <= Time.current || !scheduled?
   end
 
+  # Both qualifiers have been entered (always true for group fixtures).
+  def teams_known?
+    home_team_id.present? && away_team_id.present?
+  end
+
+  def open_for_predictions?
+    teams_known? && !locked?
+  end
+
+  def home_display = home_team&.name || home_slot_label || "TBD"
+  def away_display = away_team&.name || away_slot_label || "TBD"
+  def home_flag = home_team&.flag_emoji || "🏳️"
+  def away_flag = away_team&.flag_emoji || "🏳️"
+
   private
 
   def teams_must_differ
     return if home_team_id.blank? || home_team_id != away_team_id
 
     errors.add(:away_team, "can't be the same as the home team")
+  end
+
+  def group_fixtures_have_teams
+    return unless group?
+
+    errors.add(:base, "Group fixtures require both teams") unless teams_known?
+  end
+
+  # A knockout match has either both teams or neither — never a half-filled slot.
+  def teams_present_together
+    return if home_team_id.present? == away_team_id.present?
+
+    errors.add(:base, "Both teams must be set together")
+  end
+
+  # A match can't be marked finished (a result entered) until both qualifiers are
+  # known — otherwise a finished knockout fixture could hold nil teams, which the
+  # views and scoring assume never happens.
+  def finished_requires_teams
+    return unless finished?
+
+    errors.add(:base, "Cannot finish a match before both teams are known") unless teams_known?
   end
 end

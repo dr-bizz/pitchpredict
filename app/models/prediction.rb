@@ -24,8 +24,12 @@ class Prediction < ApplicationRecord
   end
 
   def fixture_must_be_open
-    # NOTE: locked? covers both kickoff having passed and an early result entry
-    # (fixture no longer scheduled), so keep the message cause-agnostic.
-    errors.add(:base, "Predictions are locked for this match") if fixture&.locked?
+    return unless fixture
+
+    if !fixture.teams_known?
+      errors.add(:base, "Teams for this match haven't been announced yet")
+    elsif fixture.locked?
+      errors.add(:base, "Predictions are locked for this match")
+    end
   end
 end

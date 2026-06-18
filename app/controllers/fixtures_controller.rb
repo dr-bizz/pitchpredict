@@ -13,7 +13,7 @@ class FixturesController < ApplicationController
       # grouped in the app's display zone so headers match the card times.
       @by_date = @fixtures.group_by { |fixture| fixture.kickoff_at.in_time_zone.to_date }
     else
-      @fixtures = fixtures.by_stage(@stage).order(:kickoff_at).to_a
+      @fixtures = fixtures.by_stage(@stage).order(:match_number, :kickoff_at).to_a
       # NOTE: assumption — group-stage fixtures always pair teams from the same
       # group, so the home team's group_name is the fixture's group.
       @grouped = @fixtures.group_by { |fixture| fixture.home_team.group_name }.sort_by(&:first) if @stage == "group"
