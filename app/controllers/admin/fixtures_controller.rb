@@ -1,6 +1,5 @@
 module Admin
-  class FixturesController < ApplicationController
-    before_action :require_admin
+  class FixturesController < BaseController
     before_action :set_fixture, only: %i[ edit update ]
 
     def index
@@ -41,12 +40,6 @@ module Admin
 
     def result_params
       params.expect(fixture: [ :home_score, :away_score ])
-    end
-
-    def require_admin
-      return if Current.user&.admin?
-
-      redirect_to root_path, alert: "You don't have access to the admin area."
     end
   end
 end
