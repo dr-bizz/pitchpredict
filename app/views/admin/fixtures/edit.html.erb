@@ -48,12 +48,12 @@
 
         <div class="grid grid-cols-2 gap-4">
           <div class="form-control">
-            <%= form.label :home_score, @fixture.home_display, class: "label label-text font-semibold" %>
+            <%= form.label :home_score, @fixture.home_team ? "#{@fixture.home_team.name} (#{@fixture.home_team.code})" : @fixture.home_display, class: "label label-text font-semibold" %>
             <%= form.number_field :home_score, min: 0, step: 1, required: true, inputmode: "numeric",
                   placeholder: "0", class: "input input-bordered w-full text-center text-2xl font-bold tabular-nums" %>
           </div>
           <div class="form-control">
-            <%= form.label :away_score, @fixture.away_display, class: "label label-text font-semibold" %>
+            <%= form.label :away_score, @fixture.away_team ? "#{@fixture.away_team.name} (#{@fixture.away_team.code})" : @fixture.away_display, class: "label label-text font-semibold" %>
             <%= form.number_field :away_score, min: 0, step: 1, required: true, inputmode: "numeric",
                   placeholder: "0", class: "input input-bordered w-full text-center text-2xl font-bold tabular-nums" %>
           </div>
