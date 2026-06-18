@@ -71,6 +71,20 @@ class PredictionsControllerTest < ActionDispatch::IntegrationTest
     assert_equal [ 2, 1 ], [ prediction.home_score, prediction.away_score ]
   end
 
+  test "rejects predicting a knockout fixture whose teams are not yet known" do
+    sign_in_as users(:one)
+    tbd = Fixture.create!(stadium: stadia(:metlife), kickoff_at: 20.days.from_now, stage: :r32,
+                          home_slot_label: "Winner Group A", away_slot_label: "Runner-up Group B",
+                          match_number: 73)
+
+    assert_no_difference "Prediction.count" do
+      post fixture_prediction_path(tbd), params: { prediction: { home_score: 1, away_score: 0 } }
+    end
+
+    assert_response :unprocessable_entity
+    assert_match "been announced", response.body
+  end
+
   test "rejects out-of-range scores" do
     sign_in_as users(:two)
 

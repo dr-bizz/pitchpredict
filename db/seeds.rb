@@ -190,38 +190,41 @@ ActiveRecord::Base.transaction do
     [ "PAN", "ENG", [ 6, 27, 17, 0 ], 5 ], [ "CRO", "GHA", [ 6, 27, 17, 0 ], 11 ]
   ]
 
-  group_schedule.each do |home_code, away_code, (mon, day, hr, min), stadium_idx|
+  group_schedule.each_with_index do |(home_code, away_code, (mon, day, hr, min), stadium_idx), idx|
     kickoff = Time.zone.local(2026, mon, day, hr, min)
     specs << { home: team_by_code.fetch(home_code), away: team_by_code.fetch(away_code),
-               stadium: stadiums[stadium_idx], kickoff:, stage: :group }
+               stadium: stadiums[stadium_idx], kickoff:, stage: :group, match_number: idx + 1 }
   end
 
-  # Knockout placeholders — illustrative bracket: group winners (12) +
-  # runners-up (12) + 8 "best third-placed" teams (groups A–H here).
-  winners = teams_by_group.values.map { |t| t[0] }
-  runners = teams_by_group.values.map { |t| t[1] }
-  thirds  = teams_by_group.values.first(8).map { |t| t[2] }
-  bracket = winners + runners + thirds # 32 teams
+  # Knockout fixtures — qualifiers are unknown, so teams are nil and each slot
+  # carries a descriptive label from KnockoutBracket. The schedule (dates,
+  # stadiums) is fixed; an admin fills in teams as the bracket is announced.
   knockout_stadium = ->(i) { stadiums[i % stadiums.length] }
+  ko = ->(stage, index, stadium, kickoff) do
+    spec = KnockoutBracket.for(stage, index)
+    { home: nil, away: nil, stadium:, kickoff:, stage:,
+      home_label: spec[:home_label], away_label: spec[:away_label],
+      match_number: spec[:match_number] }
+  end
 
   16.times do |i| # Round of 32: June 28 – July 3
     kickoff = Time.zone.local(2026, 6, 28, kickoff_hours[i % 3]) + (i / 3).days
-    specs << { home: bracket[i], away: bracket[31 - i], stadium: knockout_stadium.call(i), kickoff:, stage: :r32 }
+    specs << ko.call(:r32, i, knockout_stadium.call(i), kickoff)
   end
   8.times do |j| # Round of 16: July 4 – 7
     kickoff = Time.zone.local(2026, 7, 4, kickoff_hours[j % 3]) + (j / 2).days
-    specs << { home: bracket[2 * j], away: bracket[(2 * j) + 1], stadium: knockout_stadium.call(j + 3), kickoff:, stage: :r16 }
+    specs << ko.call(:r16, j, knockout_stadium.call(j + 3), kickoff)
   end
   4.times do |k| # Quarter-finals: July 9 – 10
     kickoff = Time.zone.local(2026, 7, 9, kickoff_hours[k % 2]) + (k / 2).days
-    specs << { home: bracket[4 * k], away: bracket[(4 * k) + 2], stadium: knockout_stadium.call(k + 6), kickoff:, stage: :qf }
+    specs << ko.call(:qf, k, knockout_stadium.call(k + 6), kickoff)
   end
   2.times do |s| # Semi-finals: July 14 – 15
     kickoff = Time.zone.local(2026, 7, 14, 19) + s.days
-    specs << { home: bracket[8 * s], away: bracket[(8 * s) + 4], stadium: knockout_stadium.call(s + 10), kickoff:, stage: :sf }
+    specs << ko.call(:sf, s, knockout_stadium.call(s + 10), kickoff)
   end
-  specs << { home: bracket[4], away: bracket[12], stadium: stadiums[10], kickoff: Time.zone.local(2026, 7, 18, 19), stage: :third_place }
-  specs << { home: bracket[0], away: bracket[8], stadium: stadiums[5], kickoff: Time.zone.local(2026, 7, 19, 19), stage: :final }
+  specs << ko.call(:third_place, 0, stadiums[10], Time.zone.local(2026, 7, 18, 19))
+  specs << ko.call(:final, 0, stadiums[5], Time.zone.local(2026, 7, 19, 19))
 
   # By default the schedule mirrors the REAL tournament calendar (offset 0).
   # Optionally set SCHEDULE_LEAD_DAYS to shift the whole schedule forward so the
@@ -241,7 +244,9 @@ ActiveRecord::Base.transaction do
     # can be created before results exist; production kickoffs are all future.
     provisional = (SEED_DEMO && kickoff <= NOW) ? kickoff + 60.days : kickoff
     fixture = Fixture.create!(home_team: spec[:home], away_team: spec[:away],
-                              stadium: spec[:stadium], kickoff_at: provisional, stage: spec[:stage])
+                              stadium: spec[:stadium], kickoff_at: provisional, stage: spec[:stage],
+                              home_slot_label: spec[:home_label], away_slot_label: spec[:away_label],
+                              match_number: spec[:match_number])
     real_kickoffs[fixture] = kickoff
     group_fixtures << fixture if spec[:stage] == :group
   end

@@ -52,4 +52,13 @@ class PredictionTest < ActiveSupport::TestCase
     assert_includes Prediction.for_stage(:group), predictions(:one_upcoming)
     assert_empty Prediction.for_stage(:final)
   end
+
+  test "cannot predict a knockout fixture whose teams are not yet known" do
+    tbd = Fixture.create!(stadium: stadia(:metlife), kickoff_at: 20.days.from_now,
+                          stage: :r32, home_slot_label: "Winner Group A",
+                          away_slot_label: "Runner-up Group B", match_number: 73)
+    prediction = users(:one).predictions.build(fixture: tbd, home_score: 1, away_score: 0)
+    assert_not prediction.valid?
+    assert prediction.errors.added?(:base, "Teams for this match haven't been announced yet")
+  end
 end

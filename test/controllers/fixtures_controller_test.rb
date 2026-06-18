@@ -81,4 +81,21 @@ class FixturesControllerTest < ActionDispatch::IntegrationTest
     assert_select "a[aria-current=page]", text: "Upcoming"
     assert_select "turbo-frame#prediction_fixture_#{fixtures(:upcoming_group).id}"
   end
+
+  test "knockout fixture with unknown teams renders as a non-predictable TBD card" do
+    sign_in_as users(:one)
+    ko = Fixture.create!(stadium: stadia(:metlife), kickoff_at: 20.days.from_now,
+                         stage: :r32, home_slot_label: "Winner Group A",
+                         away_slot_label: "Runner-up Group B", match_number: 73)
+    get predictions_path(stage: "r32")
+    assert_response :success
+    assert_includes response.body, "Winner Group A"
+    assert_includes response.body, "Runner-up Group B"
+    # The TBD card renders no prediction form and no editable score inputs, and
+    # shows the "Teams to be announced" affordance instead.
+    frame = "turbo-frame#prediction_fixture_#{ko.id}"
+    assert_select "#{frame} form", count: 0
+    assert_select "#{frame} input", count: 0
+    assert_select frame, text: /Teams to be announced/
+  end
 end
