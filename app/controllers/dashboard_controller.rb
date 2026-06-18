@@ -12,7 +12,7 @@ class DashboardController < ApplicationController
     @total_points = @my_row&.total_points || 0
 
     @champion_pick = Current.user.champion_pick
-    @champion_locked = ChampionPick.tournament_started?
+    @champion_locked = ChampionPick.picks_locked?
     @teams = Team.order(:name) unless @champion_locked
   end
 end
