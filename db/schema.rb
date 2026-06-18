@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_06_18_171217) do
+ActiveRecord::Schema[8.1].define(version: 2026_06_18_171822) do
   create_table "champion_picks", force: :cascade do |t|
     t.datetime "created_at", null: false
     t.integer "team_id", null: false
