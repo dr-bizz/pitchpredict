@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_06_12_224718) do
+ActiveRecord::Schema[8.1].define(version: 2026_06_18_171217) do
   create_table "champion_picks", force: :cascade do |t|
     t.datetime "created_at", null: false
     t.integer "team_id", null: false
@@ -22,11 +22,14 @@ ActiveRecord::Schema[8.1].define(version: 2026_06_12_224718) do
 
   create_table "fixtures", force: :cascade do |t|
     t.integer "away_score"
-    t.integer "away_team_id", null: false
+    t.string "away_slot_label"
+    t.integer "away_team_id"
     t.datetime "created_at", null: false
     t.integer "home_score"
-    t.integer "home_team_id", null: false
+    t.string "home_slot_label"
+    t.integer "home_team_id"
     t.datetime "kickoff_at", null: false
+    t.integer "match_number"
     t.integer "stadium_id", null: false
     t.integer "stage", default: 0, null: false
     t.integer "status", default: 0, null: false
