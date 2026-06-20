@@ -43,6 +43,14 @@ class FixtureTest < ActiveSupport::TestCase
     assert_empty Fixture.by_stage(:final)
   end
 
+  test "teams_set scope excludes fixtures with a TBD slot" do
+    tbd = Fixture.create!(stadium: stadia(:metlife), kickoff_at: 20.days.from_now,
+                          stage: :r32, home_slot_label: "Winner Group A",
+                          away_slot_label: "Runner-up Group B", match_number: 73)
+    assert_includes Fixture.teams_set, fixtures(:upcoming_group)
+    assert_not_includes Fixture.teams_set, tbd
+  end
+
   test "knockout fixture is valid with no teams and slot labels" do
     fixture = Fixture.new(stadium: stadia(:metlife), kickoff_at: 20.days.from_now,
                           stage: :r32, home_slot_label: "Winner Group A",

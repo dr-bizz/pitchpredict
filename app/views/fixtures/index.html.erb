@@ -8,7 +8,7 @@
     </p>
   </header>
 
-  <nav role="tablist" class="tabs tabs-box flex-wrap gap-1 bg-base-200 p-1" aria-label="Tournament stages">
+  <nav role="tablist" class="tabs tabs-box flex-wrap gap-1 bg-base-200 p-1" aria-label="Match filters">
     <% FixturesHelper::STAGE_TABS.each do |stage, label| %>
       <%= link_to label, predictions_path(stage: stage),
                   role: "tab",
@@ -20,11 +20,12 @@
   <% if @fixtures.empty? %>
     <div class="card bg-base-100 shadow-card rounded-2xl">
       <div class="card-body items-center text-center text-sm text-base-content/60">
-        <%= @stage == "upcoming" ? "No upcoming matches — every game has kicked off." : "No fixtures scheduled for this stage yet. Check back once the bracket is set." %>
+        <%= empty_fixtures_message(@stage) %>
       </div>
     </div>
   <% elsif @by_date %>
-    <%# Upcoming view — soonest first, grouped under a heading per day. %>
+    <%# Upcoming / Unpredicted (soonest first) and Past (most recent first),
+        grouped under a heading per day. %>
     <% @by_date.each do |date, fixtures| %>
       <section class="space-y-3">
         <h2 class="section-title"><%= date.strftime("%A %-d %B") %></h2>
