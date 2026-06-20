@@ -82,6 +82,96 @@ class FixturesControllerTest < ActionDispatch::IntegrationTest
     assert_select "turbo-frame#prediction_fixture_#{fixtures(:upcoming_group).id}"
   end
 
+  test "upcoming lists matches with the soonest kickoff first" do
+    sign_in_as users(:one)
+    # upcoming_group kicks off in 7 days; add a later match to pin the ordering.
+    later = Fixture.create!(stadium: stadia(:azteca), kickoff_at: 30.days.from_now,
+                            stage: :r32, home_team: teams(:brazil), away_team: teams(:france),
+                            status: :scheduled, match_number: 99)
+    get predictions_path
+
+    assert_response :success
+    sooner = response.body.index("prediction_fixture_#{fixtures(:upcoming_group).id}")
+    farther = response.body.index("prediction_fixture_#{later.id}")
+    assert sooner && farther && sooner < farther,
+           "expected the sooner kickoff to render before the later one"
+  end
+
+  test "past shows kicked-off matches and excludes upcoming ones" do
+    sign_in_as users(:one)
+    get predictions_path(stage: "past")
+
+    assert_response :success
+    assert_select "a[aria-current=page]", text: "Past"
+    assert_select "turbo-frame#prediction_fixture_#{fixtures(:finished_group).id}"
+    assert_select "turbo-frame#prediction_fixture_#{fixtures(:upcoming_group).id}", count: 0
+  end
+
+  test "past lists matches with the most recent kickoff first" do
+    sign_in_as users(:one)
+    # finished_group is 2 days ago; add an older match to pin the descending order.
+    older = Fixture.create!(stadium: stadia(:azteca), kickoff_at: 10.days.ago,
+                            stage: :group, home_team: teams(:spain), away_team: teams(:canada),
+                            status: :finished, home_score: 1, away_score: 0, match_number: 98)
+    get predictions_path(stage: "past")
+
+    assert_response :success
+    recent = response.body.index("prediction_fixture_#{fixtures(:finished_group).id}")
+    older_pos = response.body.index("prediction_fixture_#{older.id}")
+    assert recent && older_pos && recent < older_pos,
+           "expected the more-recent kickoff to render before the older one"
+  end
+
+  test "unpredicted shows open matches the player has not picked yet" do
+    # User two has no prediction on the open upcoming_group.
+    sign_in_as users(:two)
+    get predictions_path(stage: "unpredicted")
+
+    assert_response :success
+    assert_select "a[aria-current=page]", text: "Unpredicted"
+    assert_select "turbo-frame#prediction_fixture_#{fixtures(:upcoming_group).id}"
+    # A kicked-off match can no longer be predicted, so it never shows here.
+    assert_select "turbo-frame#prediction_fixture_#{fixtures(:finished_group).id}", count: 0
+  end
+
+  test "unpredicted excludes matches the player has already predicted" do
+    # User one predicted upcoming_group, leaving nothing open to pick.
+    sign_in_as users(:one)
+    get predictions_path(stage: "unpredicted")
+
+    assert_response :success
+    assert_select "turbo-frame#prediction_fixture_#{fixtures(:upcoming_group).id}", count: 0
+    assert_match "all caught up", response.body
+  end
+
+  test "unpredicted excludes future matches whose teams are not yet set" do
+    sign_in_as users(:two)
+    tbd = Fixture.create!(stadium: stadia(:metlife), kickoff_at: 20.days.from_now,
+                          stage: :r32, home_slot_label: "Winner Group A",
+                          away_slot_label: "Runner-up Group B", match_number: 73)
+    get predictions_path(stage: "unpredicted")
+
+    assert_response :success
+    assert_select "turbo-frame#prediction_fixture_#{tbd.id}", count: 0
+  end
+
+  test "unpredicted excludes future matches locked by status (live or pre-kickoff result)" do
+    # A live or already-finished match in the future is locked even though its
+    # kickoff is still ahead — the .scheduled guard must keep it off this tab.
+    sign_in_as users(:two)
+    live = Fixture.create!(stadium: stadia(:azteca), kickoff_at: 5.days.from_now,
+                           stage: :r32, home_team: teams(:brazil), away_team: teams(:france),
+                           status: :live, match_number: 80)
+    finished_future = Fixture.create!(stadium: stadia(:metlife), kickoff_at: 6.days.from_now,
+                                      stage: :r32, home_team: teams(:spain), away_team: teams(:canada),
+                                      status: :finished, home_score: 1, away_score: 0, match_number: 81)
+    get predictions_path(stage: "unpredicted")
+
+    assert_response :success
+    assert_select "turbo-frame#prediction_fixture_#{live.id}", count: 0
+    assert_select "turbo-frame#prediction_fixture_#{finished_future.id}", count: 0
+  end
+
   test "knockout fixture with unknown teams renders as a non-predictable TBD card" do
     sign_in_as users(:one)
     ko = Fixture.create!(stadium: stadia(:metlife), kickoff_at: 20.days.from_now,

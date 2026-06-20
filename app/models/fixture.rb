@@ -23,6 +23,9 @@ class Fixture < ApplicationRecord
   scope :upcoming, -> { where(kickoff_at: Time.current..).order(:kickoff_at) }
   scope :past, -> { where(kickoff_at: ...Time.current).order(kickoff_at: :desc) }
   scope :by_stage, ->(stage) { where(stage: stage) }
+  # Query-side counterpart to #teams_known?: both qualifiers entered, so a match
+  # with a still-TBD slot is excluded (nothing to predict / count yet).
+  scope :teams_set, -> { where.not(home_team_id: nil).where.not(away_team_id: nil) }
 
   # Predictions lock at kickoff — or earlier, the moment a result exists.
   # NOTE: admins may enter a result before kickoff (abandoned/rescheduled
