@@ -43,6 +43,19 @@ class FixtureTest < ActiveSupport::TestCase
     assert_empty Fixture.by_stage(:final)
   end
 
+  test "locked scope matches the locked? predicate and excludes open fixtures" do
+    # Before any mutation: finished_group is past+finished (locked); upcoming_group
+    # is future+scheduled (open).
+    assert_includes Fixture.locked, fixtures(:finished_group)
+    refute_includes Fixture.locked, fixtures(:upcoming_group)
+
+    # Equivalence with the instance predicate across every fixture, including a
+    # live-before-kickoff one (locked even though its kickoff is in the future).
+    fixtures(:upcoming_group).update!(status: :live)
+    expected = Fixture.all.select(&:locked?).map(&:id).sort
+    assert_equal expected, Fixture.locked.pluck(:id).sort
+  end
+
   test "knockout fixture is valid with no teams and slot labels" do
     fixture = Fixture.new(stadium: stadia(:metlife), kickoff_at: 20.days.from_now,
                           stage: :r32, home_slot_label: "Winner Group A",

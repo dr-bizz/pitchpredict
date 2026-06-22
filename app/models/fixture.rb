@@ -23,6 +23,10 @@ class Fixture < ApplicationRecord
   scope :upcoming, -> { where(kickoff_at: Time.current..).order(:kickoff_at) }
   scope :past, -> { where(kickoff_at: ...Time.current).order(kickoff_at: :desc) }
   scope :by_stage, ->(stage) { where(stage: stage) }
+  # Query-level twin of #locked? — the matches no longer open to prediction.
+  # NOTE: status <> scheduled(0) captures live/finished-before-kickoff, so this
+  # is intentionally broader than the temporal `past` scope.
+  scope :locked, -> { where("kickoff_at <= ? OR status <> ?", Time.current, statuses[:scheduled]) }
 
   # Predictions lock at kickoff — or earlier, the moment a result exists.
   # NOTE: admins may enter a result before kickoff (abandoned/rescheduled
