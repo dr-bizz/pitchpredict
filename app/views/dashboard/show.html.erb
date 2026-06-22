@@ -148,7 +148,11 @@
                           <%= row.user.name.to_s.first&.upcase %>
                         </span>
                         <span class="font-medium text-charcoal">
-                          <%= row.user.name %><%= " (you)" if is_you %>
+                          <% if is_you %>
+                            <%= row.user.name %> (you)
+                          <% else %>
+                            <%= link_to row.user.name, user_predictions_path(row.user), class: "link link-hover" %>
+                          <% end %>
                         </span>
                       </div>
                     </td>

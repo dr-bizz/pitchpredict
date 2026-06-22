@@ -47,6 +47,26 @@ class LeaderboardsControllerTest < ActionDispatch::IntegrationTest
     assert_includes html, "data-you-badge"
   end
 
+  test "links other players' names to their predictions but not the viewer's own" do
+    sign_in_as users(:two)
+    get leaderboard_path
+
+    assert_select "a[href=?]", user_predictions_path(users(:one))
+    assert_select "a[href=?]", user_predictions_path(users(:two)), count: 0
+  end
+
+  test "podium links other players but not the viewer" do
+    # The podium only renders with at least three players.
+    User.create!(name: "User Three", email_address: "three@example.com", password: "password")
+    sign_in_as users(:two)
+    get leaderboard_path
+
+    assert_select "section[aria-label='Top three players']" do
+      assert_select "a[href=?]", user_predictions_path(users(:one))
+      assert_select "a[href=?]", user_predictions_path(users(:two)), count: 0
+    end
+  end
+
   test "table partial shows an empty state when there are no rows" do
     html = ApplicationController.render(
       partial: "leaderboards/table",
