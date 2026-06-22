@@ -1,0 +1,46 @@
+<%# Read-only head-to-head card (the owner's pick vs the viewer's). -%>
+<%# locals: (fixture:, owner:, owner_prediction:, viewer_prediction:) -%>
+<article class="card bg-base-100 shadow-card rounded-2xl h-full">
+  <div class="card-body flex h-full flex-col gap-4 p-5">
+    <header class="flex items-start justify-between gap-3">
+      <div class="min-w-0 text-xs text-charcoal/60">
+        <p class="truncate font-medium text-charcoal/70"><%= fixture.stadium.name %> · <%= fixture.stadium.city %></p>
+        <p class="mt-0.5">
+          <time datetime="<%= fixture.kickoff_at.iso8601 %>"><%= kickoff_label(fixture) %></time>
+        </p>
+      </div>
+      <div class="flex shrink-0 items-center gap-1.5">
+        <% if fixture.live? %>
+          <span class="badge badge-error animate-pulse">Live</span>
+        <% elsif fixture.finished? %>
+          <span class="badge badge-ghost">Full time</span>
+        <% end %>
+      </div>
+    </header>
+
+    <div class="flex items-center justify-between gap-3">
+      <div class="flex min-w-0 flex-1 flex-col items-center gap-1.5 text-center">
+        <span class="text-3xl leading-none" aria-hidden="true"><%= fixture.home_flag %></span>
+        <span class="truncate w-full text-sm font-bold text-charcoal"><%= fixture.home_display %></span>
+      </div>
+      <div class="shrink-0 px-1 text-center">
+        <% if fixture.finished? %>
+          <div class="text-3xl font-bold tabular-nums text-pitch">
+            <%= fixture.home_score %><span class="px-1 text-charcoal/30">–</span><%= fixture.away_score %>
+          </div>
+        <% else %>
+          <div class="text-xs font-semibold uppercase tracking-wide text-charcoal/40">vs</div>
+        <% end %>
+      </div>
+      <div class="flex min-w-0 flex-1 flex-col items-center gap-1.5 text-center">
+        <span class="text-3xl leading-none" aria-hidden="true"><%= fixture.away_flag %></span>
+        <span class="truncate w-full text-sm font-bold text-charcoal"><%= fixture.away_display %></span>
+      </div>
+    </div>
+
+    <footer class="mt-auto grid grid-cols-2 gap-2 border-t border-base-200 pt-3 text-xs">
+      <%= render "user_predictions/pick", who: owner.name, prediction: owner_prediction, finished: fixture.finished? %>
+      <%= render "user_predictions/pick", who: "You", prediction: viewer_prediction, finished: fixture.finished? %>
+    </footer>
+  </div>
+</article>

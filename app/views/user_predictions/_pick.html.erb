@@ -1,0 +1,17 @@
+<%# One player's pick in the head-to-head footer. -%>
+<%# locals: (who:, prediction:, finished:) -%>
+<div class="rounded-lg bg-base-200/50 px-3 py-2">
+  <p class="font-semibold uppercase tracking-wide text-charcoal/50"><%= who %></p>
+  <% if prediction %>
+    <p class="mt-1 flex flex-wrap items-center gap-1.5">
+      <span class="font-bold tabular-nums text-charcoal/80"><%= prediction.home_score %>–<%= prediction.away_score %></span>
+      <% if finished && prediction.points_awarded.present? %>
+        <span class="badge badge-sm <%= prediction_outcome_badge_class(prediction.points_awarded) %>">
+          +<%= prediction.points_awarded %><% if (label = prediction_outcome_label(prediction.points_awarded)) %> · <%= label %><% end %>
+        </span>
+      <% end %>
+    </p>
+  <% else %>
+    <p class="mt-1 italic text-charcoal/40">No prediction</p>
+  <% end %>
+</div>
