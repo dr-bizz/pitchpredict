@@ -47,6 +47,22 @@ class LeaderboardsControllerTest < ActionDispatch::IntegrationTest
     assert_includes html, "data-you-badge"
   end
 
+  test "broadcast (nil current_user) links every player; the JS neutralises the viewer's own" do
+    rows = LeaderboardService.new.rows
+    html = ApplicationController.render(
+      partial: "leaderboards/table",
+      locals: { rows: rows, current_user: nil }
+    )
+
+    # With no viewer, every name links (mine is false for all). Each link is
+    # tagged data-player-link so leaderboard_highlight_controller.js can swap the
+    # viewer's own back to plain text client-side after the broadcast.
+    rows.each do |row|
+      assert_includes html, %(href="#{user_predictions_path(row.user)}")
+    end
+    assert_includes html, "data-player-link"
+  end
+
   test "links other players' names to their predictions but not the viewer's own" do
     sign_in_as users(:two)
     get leaderboard_path
