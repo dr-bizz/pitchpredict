@@ -22,5 +22,16 @@ module Admin
       else "pill-muted"
       end
     end
+
+    # Maps a fixture status to a DaisyUI badge class for the admin fixtures
+    # table. Shared by the display and edit row partials (a partial can't see a
+    # lambda defined in the index template).
+    def admin_status_badge_class(status)
+      case status.to_s
+      when "live" then "badge badge-error"
+      when "finished" then "badge badge-success"
+      else "badge badge-ghost"
+      end
+    end
   end
 end

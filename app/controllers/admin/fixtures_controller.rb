@@ -18,6 +18,8 @@ module Admin
     end
 
     def edit
+      # Full-page result form — a no-JS / deep-link fallback. In normal use the
+      # admin index shows the score inputs inline, so nothing links here.
     end
 
     def update
@@ -25,18 +27,35 @@ module Admin
       # before a result can be entered — guard here for a friendly message; the
       # Fixture model also refuses to finish a teams-unknown match.
       unless @fixture.teams_known?
-        return redirect_to admin_knockout_fixtures_path,
-                           alert: "Set both teams for this match before entering a result."
+        respond_to do |format|
+          format.turbo_stream do
+            @fixture.errors.add(:base, "Set both teams for this match before entering a result.")
+            render :update, status: :unprocessable_entity
+          end
+          format.html do
+            redirect_to admin_knockout_fixtures_path,
+                        alert: "Set both teams for this match before entering a result."
+          end
+        end
+        return
       end
 
       # Entering a result always marks the fixture finished; the Fixture model
       # validates that both scores are then present and >= 0.
       if @fixture.update(result_params.merge(status: :finished))
         ScoreFixtureJob.perform_later(@fixture.id)
-        redirect_to admin_fixtures_path,
-                    notice: "Result saved: #{@fixture.home_display} #{@fixture.home_score}–#{@fixture.away_score} #{@fixture.away_display}. Predictions are being scored."
+        respond_to do |format|
+          format.turbo_stream # update.turbo_stream.erb — swap row to result + toast
+          format.html do
+            redirect_to admin_fixtures_path,
+                        notice: "Result saved: #{@fixture.home_display} #{@fixture.home_score}–#{@fixture.away_score} #{@fixture.away_display}. Predictions are being scored."
+          end
+        end
       else
-        render :edit, status: :unprocessable_entity
+        respond_to do |format|
+          format.turbo_stream { render :update, status: :unprocessable_entity }
+          format.html { render :edit, status: :unprocessable_entity }
+        end
       end
     end
 

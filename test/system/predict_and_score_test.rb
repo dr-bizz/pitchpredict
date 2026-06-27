@@ -38,17 +38,20 @@ class PredictAndScoreTest < ApplicationSystemTestCase
     using_session :admin do
       sign_in_through_ui(admin)
 
+      # Scores are entered inline on the list row — no separate edit page.
       visit admin_fixtures_path
       within "tr", text: "Spain" do
-        click_on "Enter result"
+        fill_in "Spain goals", with: "3"
+        fill_in "Canada goals", with: "1"
       end
 
-      fill_in "Spain (ESP)", with: "3"
-      fill_in "Canada (CAN)", with: "1"
       # The controller enqueues ScoreFixtureJob (test adapter); perform it so
       # the predictions are scored just like the Solid Queue worker would.
       perform_enqueued_jobs do
-        click_on "Save result & score predictions"
+        within "tr", text: "Spain" do
+          click_on "Save"
+        end
+        # The confirmation toast renders in #admin-flash, above the table.
         assert_text "Result saved: Spain 3–1 Canada"
       end
     end

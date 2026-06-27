@@ -27,6 +27,41 @@ class DashboardControllerTest < ActionDispatch::IntegrationTest
     assert_select "h2", text: "How it works"
   end
 
+  test "computes the leaderboard once per request" do
+    sign_in_as(@user)
+
+    # Spy on the cached entry point: the controller should call it exactly once,
+    # and the view must reuse @top_rows instead of re-calling the service.
+    calls = 0
+    original = LeaderboardService.method(:fetch_rows)
+    LeaderboardService.define_singleton_method(:fetch_rows) do
+      calls += 1
+      original.call
+    end
+
+    begin
+      get root_path
+    ensure
+      LeaderboardService.singleton_class.send(:remove_method, :fetch_rows)
+      LeaderboardService.define_singleton_method(:fetch_rows, original)
+    end
+
+    assert_response :success
+    assert_equal 1, calls
+  end
+
+  test "shows the count of remaining unpredicted upcoming fixtures" do
+    sign_in_as(@user)
+
+    get root_path
+
+    assert_response :success
+    expected = Fixture.upcoming.scheduled.teams_set
+                      .where.not(id: @user.predictions.select(:fixture_id)).count
+    assert_select "section.hero-gradient p",
+                  text: /#{expected} #{"match".pluralize(expected)} remaining to predict/
+  end
+
   test "top-five player names link to their predictions, except the viewer" do
     sign_in_as(@user)  # @user is users(:one)
     get root_path

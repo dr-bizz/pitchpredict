@@ -1,13 +1,16 @@
 <%# Live leaderboard table.
-    BROADCAST CONTRACT (ScoreFixtureJob — do not break):
-    - the root element keeps id="leaderboard-table" so
-      Turbo::StreamsChannel.broadcast_replace_to can swap it in place;
-    - locals: rows (Array<LeaderboardService::Row>) and current_user, which is
-      nil when rendered from the background job. The server still highlights
-      the viewer's row when it can (no-JS fallback); after a broadcast the
-      leaderboard-highlight Stimulus controller re-applies the highlight
-      client-side via each row's data-user-id and the layout's
-      <meta name="current-user-id"> tag. %>
+    LIVE-UPDATE MECHANISM (morph refresh — do not break):
+    - leaderboards/show.html.erb subscribes via turbo_stream_from "results".
+      When a result is scored, ScoreFixtureJob calls broadcast_refresh_to("results"),
+      which tells subscribers to re-GET their current URL; Turbo then morphs the
+      diff in place. There is NO targeted broadcast_replace_to of this partial.
+    - id="leaderboard-table" is retained ONLY so the leaderboard-highlight
+      Stimulus controller can scope to this element (do not add a targeted
+      broadcast back).
+    - locals: rows (Array<LeaderboardService::Row>) and current_user. The server
+      highlights the viewer's row when it can (no-JS fallback); the
+      leaderboard-highlight controller re-applies the highlight client-side via
+      each row's data-user-id and the layout's <meta name="current-user-id"> tag. %>
 <% viewer = local_assigns[:current_user] %>
 
 <div id="leaderboard-table" data-controller="leaderboard-highlight">

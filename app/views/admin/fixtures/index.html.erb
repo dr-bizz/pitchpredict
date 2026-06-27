@@ -1,14 +1,11 @@
 <% content_for :title, "Admin · Fixtures · PitchPredict" %>
 
-<% status_badge = ->(status) {
-     case status.to_s
-     when "live" then "badge badge-error"
-     when "finished" then "badge badge-success"
-     else "badge badge-ghost"
-     end
-   } %>
-
 <div class="space-y-6">
+  <%# Toast target for inline-save confirmations (prepended via Turbo Stream).
+      The admin index deliberately does NOT subscribe to "results" — a
+      background morph refresh would clobber a row being edited. %>
+  <div id="admin-flash" class="space-y-2"></div>
+
   <header class="flex flex-wrap items-center gap-3">
     <span class="flex h-11 w-11 items-center justify-center rounded-full bg-pitch text-white shadow-card" aria-hidden="true">
       <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -64,44 +61,7 @@
               </tr>
             </thead>
             <tbody>
-              <% @fixtures.each do |fixture| %>
-                <tr class="hover">
-                  <td>
-                    <div class="flex items-center gap-2 font-semibold">
-                      <% if fixture.home_team %>
-                        <span class="badge badge-ghost badge-sm font-mono"><%= fixture.home_team.code %></span>
-                      <% end %>
-                      <span><%= fixture.home_display %></span>
-                      <span class="font-normal text-base-content/40">vs</span>
-                      <span><%= fixture.away_display %></span>
-                      <% if fixture.away_team %>
-                        <span class="badge badge-ghost badge-sm font-mono"><%= fixture.away_team.code %></span>
-                      <% end %>
-                    </div>
-                    <div class="text-xs text-base-content/50"><%= kickoff_label(fixture) %></div>
-                  </td>
-                  <td><span class="badge badge-ghost"><%= stage_label(fixture.stage) %></span></td>
-                  <td>
-                    <span class="<%= status_badge.call(fixture.status) %> <%= "animate-pulse" if fixture.live? %>"><%= fixture.status.humanize %></span>
-                  </td>
-                  <td class="text-center">
-                    <% if fixture.home_score && fixture.away_score %>
-                      <span class="font-bold tabular-nums text-teal-accent"><%= fixture.home_score %>–<%= fixture.away_score %></span>
-                    <% else %>
-                      <span class="text-base-content/30">—</span>
-                    <% end %>
-                  </td>
-                  <td class="text-right whitespace-nowrap">
-                    <% if !fixture.teams_known? %>
-                      <%= link_to "Set teams", admin_knockout_fixtures_path, class: "btn btn-ghost btn-sm text-base-content/50" %>
-                    <% elsif fixture.finished? %>
-                      <%= link_to "Done", edit_admin_fixture_path(fixture), class: "btn btn-ghost btn-sm text-base-content/50" %>
-                    <% else %>
-                      <%= link_to "Enter result", edit_admin_fixture_path(fixture), class: "btn btn-primary btn-sm" %>
-                    <% end %>
-                  </td>
-                </tr>
-              <% end %>
+              <%= render partial: "fixture_row", collection: @fixtures, as: :fixture %>
             </tbody>
           </table>
         </div>

@@ -1,0 +1,17 @@
+<%# Re-render the saved row (inputs now prefilled with the stored score, or the
+    just-typed invalid values on failure) and flash a toast. A red error toast
+    persists; a green success toast auto-dismisses. %>
+<%= turbo_stream.replace dom_id(@fixture) do %>
+  <%= render "fixture_row", fixture: @fixture %>
+<% end %>
+<%= turbo_stream.prepend "admin-flash" do %>
+  <% if @fixture.errors.any? %>
+    <div class="alert alert-error" role="alert">
+      <span><%= @fixture.errors.full_messages.to_sentence %></span>
+    </div>
+  <% else %>
+    <div class="alert alert-success" role="status" data-controller="auto-dismiss">
+      <span>Result saved: <%= @fixture.home_display %> <%= @fixture.home_score %>–<%= @fixture.away_score %> <%= @fixture.away_display %>. Predictions are being scored.</span>
+    </div>
+  <% end %>
+<% end %>

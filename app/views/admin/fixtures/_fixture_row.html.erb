@@ -1,0 +1,47 @@
+<%# One fixture row on the admin index. Teams-known fixtures show the score
+    inputs inline (prefilled if a result already exists) so an admin enters or
+    corrects a result right in the list — no toggle. TBD knockout fixtures show
+    a link to set teams first. Renders a complete <tr id="<dom_id(fixture)>"> so
+    it can be swapped in place via Turbo Streams. local: fixture: -%>
+<tr id="<%= dom_id(fixture) %>" class="hover">
+  <td>
+    <div class="flex items-center gap-2 font-semibold">
+      <% if fixture.home_team %>
+        <span class="badge badge-ghost badge-sm font-mono"><%= fixture.home_team.code %></span>
+      <% end %>
+      <span><%= fixture.home_display %></span>
+      <span class="font-normal text-base-content/40">vs</span>
+      <span><%= fixture.away_display %></span>
+      <% if fixture.away_team %>
+        <span class="badge badge-ghost badge-sm font-mono"><%= fixture.away_team.code %></span>
+      <% end %>
+    </div>
+    <div class="text-xs text-base-content/50"><%= kickoff_label(fixture) %></div>
+  </td>
+  <td><span class="badge badge-ghost"><%= stage_label(fixture.stage) %></span></td>
+  <td>
+    <span class="<%= admin_status_badge_class(fixture.status) %> <%= "animate-pulse" if fixture.live? %>"><%= fixture.status.humanize %></span>
+  </td>
+  <% if fixture.teams_known? %>
+    <%# Inline score form spans Result + Action (colspan 2) so the <form> stays
+        valid HTML. Inputs prefill from the saved score for a finished match. %>
+    <td colspan="2">
+      <%= form_with model: fixture, url: admin_fixture_path(fixture), method: :patch,
+            id: dom_id(fixture, :form), class: "flex flex-wrap items-center justify-end gap-2" do |form| %>
+        <%= form.number_field :home_score, min: 0, step: 1, required: true, inputmode: "numeric",
+              placeholder: "0", "aria-label": "#{fixture.home_display} goals",
+              class: "input input-bordered input-sm w-16 text-center font-bold tabular-nums" %>
+        <span class="text-xs font-semibold uppercase tracking-wide text-base-content/40">vs</span>
+        <%= form.number_field :away_score, min: 0, step: 1, required: true, inputmode: "numeric",
+              placeholder: "0", "aria-label": "#{fixture.away_display} goals",
+              class: "input input-bordered input-sm w-16 text-center font-bold tabular-nums" %>
+        <%= form.submit "Save", data: { turbo_submits_with: "Saving…" }, class: "btn btn-primary btn-sm" %>
+      <% end %>
+    </td>
+  <% else %>
+    <td class="text-center"><span class="text-base-content/30">—</span></td>
+    <td class="text-right whitespace-nowrap">
+      <%= link_to "Set teams", admin_knockout_fixtures_path, class: "btn btn-ghost btn-sm text-base-content/50" %>
+    </td>
+  <% end %>
+</tr>

@@ -204,7 +204,8 @@
         </div>
 
         <div class="mt-auto flex items-center justify-center gap-2">
-          <%= form.submit prediction.persisted? ? "Update prediction" : "Save prediction", class: "btn btn-primary btn-sm" %>
+          <%= form.submit prediction.persisted? ? "Update prediction" : "Save prediction",
+                data: { turbo_submits_with: "Saving…" }, class: "btn btn-primary btn-sm" %>
           <% if just_saved %>
             <span class="text-xs font-semibold text-success" role="status">Saved ✓</span>
           <% end %>
