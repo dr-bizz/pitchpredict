@@ -3,6 +3,7 @@ require "test_helper"
 module Admin
   class FixturesControllerTest < ActionDispatch::IntegrationTest
     include ActiveJob::TestHelper
+    include ActionView::RecordIdentifier
 
     setup do
       # NOTE: built here instead of editing the shared users.yml fixture file,
@@ -56,6 +57,52 @@ module Admin
       assert_select "input[name='fixture[home_score]']"
     end
 
+    test "edit as turbo_stream replaces the row with the inline form" do
+      sign_in_as @admin
+      get edit_admin_fixture_path(@fixture), as: :turbo_stream
+      assert_response :success
+      assert_equal "text/vnd.turbo-stream.html", response.media_type
+      assert_select "turbo-stream[action=replace][target=?]", dom_id(@fixture)
+      assert_select "turbo-stream template form[action=?]", admin_fixture_path(@fixture)
+      assert_select "turbo-stream template input[name='fixture[home_score]']"
+    end
+
+    test "update as turbo_stream swaps the row to the result and enqueues scoring" do
+      sign_in_as @admin
+
+      assert_enqueued_with job: ScoreFixtureJob, args: [ @fixture.id ] do
+        patch admin_fixture_path(@fixture), params: { fixture: { home_score: 3, away_score: 1 } }, as: :turbo_stream
+      end
+
+      assert_response :success
+      assert_equal "text/vnd.turbo-stream.html", response.media_type
+      assert_select "turbo-stream[action=replace][target=?]", dom_id(@fixture)
+      assert_select "turbo-stream[action=prepend][target=admin-flash]"
+      assert @fixture.reload.finished?
+    end
+
+    test "update as turbo_stream re-renders the form row with errors on failure" do
+      sign_in_as @admin
+
+      assert_no_enqueued_jobs only: ScoreFixtureJob do
+        patch admin_fixture_path(@fixture), params: { fixture: { home_score: "", away_score: 2 } }, as: :turbo_stream
+      end
+
+      assert_response :unprocessable_entity
+      assert_select "turbo-stream[action=replace][target=?]", dom_id(@fixture)
+      assert_select "turbo-stream template input[name='fixture[home_score]']"
+      assert @fixture.reload.scheduled?
+    end
+
+    test "row as turbo_stream renders the display row" do
+      sign_in_as @admin
+      get row_admin_fixture_path(@fixture), as: :turbo_stream
+      assert_response :success
+      assert_equal "text/vnd.turbo-stream.html", response.media_type
+      assert_select "turbo-stream[action=replace][target=?]", dom_id(@fixture)
+      assert_select "turbo-stream template a", text: "Enter result"
+    end
+
     test "update saves the result, finishes the fixture and enqueues scoring" do
       sign_in_as @admin
 
@@ -106,6 +153,25 @@ module Admin
       end
 
       assert_redirected_to admin_knockout_fixtures_path
+      tbd.reload
+      assert tbd.scheduled?
+      assert_nil tbd.home_score
+    end
+
+    test "cannot enter a result for a TBD knockout fixture as turbo_stream" do
+      sign_in_as @admin
+      tbd = Fixture.create!(stadium: stadia(:metlife), kickoff_at: 25.days.from_now, stage: :r32,
+                            home_slot_label: "Winner Group A", away_slot_label: "Runner-up Group B",
+                            match_number: 74)
+
+      assert_no_enqueued_jobs only: ScoreFixtureJob do
+        patch admin_fixture_path(tbd), params: { fixture: { home_score: 2, away_score: 1 } }, as: :turbo_stream
+      end
+
+      assert_response :unprocessable_entity
+      assert_equal "text/vnd.turbo-stream.html", response.media_type
+      assert_select "turbo-stream[action=replace][target=?]", dom_id(tbd)
+      assert_select "turbo-stream template", text: /Set both teams for this match/
       tbd.reload
       assert tbd.scheduled?
       assert_nil tbd.home_score

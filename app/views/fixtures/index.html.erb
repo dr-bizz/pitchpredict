@@ -1,5 +1,10 @@
 <% content_for :title, "Predictions" %>
 
+<%# Live updates: ScoreFixtureJob broadcasts a refresh to "results" after
+    scoring, so this grid re-GETs itself and morphs in finished results. Morph
+    preserves a focused input, so a player mid-prediction isn't clobbered. %>
+<%= turbo_stream_from "results" %>
+
 <div class="space-y-6">
   <header>
     <h1 class="page-title">Predictions</h1>

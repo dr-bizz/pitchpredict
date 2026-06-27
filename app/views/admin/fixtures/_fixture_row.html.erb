@@ -1,0 +1,39 @@
+<%# Display row for one fixture on the admin index. Renders a complete
+    <tr id="<dom_id(fixture)>"> so it can be swapped in place via Turbo Streams
+    (tables can't nest a turbo-frame). local: fixture: -%>
+<tr id="<%= dom_id(fixture) %>" class="hover">
+  <td>
+    <div class="flex items-center gap-2 font-semibold">
+      <% if fixture.home_team %>
+        <span class="badge badge-ghost badge-sm font-mono"><%= fixture.home_team.code %></span>
+      <% end %>
+      <span><%= fixture.home_display %></span>
+      <span class="font-normal text-base-content/40">vs</span>
+      <span><%= fixture.away_display %></span>
+      <% if fixture.away_team %>
+        <span class="badge badge-ghost badge-sm font-mono"><%= fixture.away_team.code %></span>
+      <% end %>
+    </div>
+    <div class="text-xs text-base-content/50"><%= kickoff_label(fixture) %></div>
+  </td>
+  <td><span class="badge badge-ghost"><%= stage_label(fixture.stage) %></span></td>
+  <td>
+    <span class="<%= admin_status_badge_class(fixture.status) %> <%= "animate-pulse" if fixture.live? %>"><%= fixture.status.humanize %></span>
+  </td>
+  <td class="text-center">
+    <% if fixture.home_score && fixture.away_score %>
+      <span class="font-bold tabular-nums text-teal-accent"><%= fixture.home_score %>–<%= fixture.away_score %></span>
+    <% else %>
+      <span class="text-base-content/30">—</span>
+    <% end %>
+  </td>
+  <td class="text-right whitespace-nowrap">
+    <% if !fixture.teams_known? %>
+      <%= link_to "Set teams", admin_knockout_fixtures_path, class: "btn btn-ghost btn-sm text-base-content/50" %>
+    <% elsif fixture.finished? %>
+      <%= link_to "Edit", edit_admin_fixture_path(fixture), data: { turbo_stream: true }, class: "btn btn-ghost btn-sm" %>
+    <% else %>
+      <%= link_to "Enter result", edit_admin_fixture_path(fixture), data: { turbo_stream: true }, class: "btn btn-primary btn-sm" %>
+    <% end %>
+  </td>
+</tr>

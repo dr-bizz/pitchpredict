@@ -1,5 +1,9 @@
 <% content_for :title, "Dashboard" %>
 
+<%# Live updates: ScoreFixtureJob broadcasts a refresh to "results" after
+    scoring, so this page re-GETs itself and morphs in the new stats/standings. %>
+<%= turbo_stream_from "results" %>
+
 <%
   # Derived view values from controller-provided data + models (read-only).
   current_user_id = Current.user.id
@@ -8,18 +12,12 @@
   my_rank = @my_row&.rank
   total_points = @total_points
 
-  # Unpredicted upcoming fixtures — "matches remaining" to predict. TBD knockout
-  # matches (teams not yet announced) aren't predictable, so they don't count.
-  predicted_fixture_ids = Current.user.predictions.pluck(:fixture_id).to_set
-  upcoming_fixtures = Fixture.upcoming.to_a
-  remaining_to_predict = upcoming_fixtures.count { |f| f.teams_known? && !predicted_fixture_ids.include?(f.id) }
-
   stage_labels = {
     "group" => "Group Stage", "r32" => "Round of 32", "r16" => "Round of 16",
     "qf" => "Quarter-finals", "sf" => "Semi-finals",
     "third_place" => "Third-place Play-off", "final" => "Final"
   }
-  current_stage_key = upcoming_fixtures.first&.stage
+  current_stage_key = Fixture.upcoming.first&.stage
   stage_label = stage_labels[current_stage_key] || "Group Stage"
 
   champion_team_id = @champion_pick&.team_id
@@ -30,7 +28,7 @@
   <section class="hero-gradient rounded-2xl px-5 py-8 text-white shadow-card sm:px-8 sm:py-10">
     <h1 class="text-2xl font-bold tracking-tight sm:text-3xl">Hello, <%= first_name %> 👋</h1>
     <p class="mt-2 text-sm text-white/90 sm:text-base">
-      <%= stage_label %> &middot; <%= pluralize(remaining_to_predict, "match") %> remaining to predict
+      <%= stage_label %> &middot; <%= pluralize(@remaining_to_predict, "match") %> remaining to predict
     </p>
     <%= link_to "Continue predicting →", predictions_path,
           class: "btn btn-secondary btn-lg mt-5 border-none text-charcoal shadow-md hover:brightness-95" %>
@@ -104,7 +102,7 @@
           <div class="mt-2 flex flex-wrap gap-2">
             <% @teams.each do |team| %>
               <%= button_to champion_pick_path, method: :patch, params: { champion_pick: { team_id: team.id } },
-                    form_class: "inline-flex",
+                    form_class: "inline-flex", data: { turbo_submits_with: "Saving…" },
                     class: "chip #{'chip-active' if team.id == champion_team_id}" do %>
                 <span aria-hidden="true"><%= team.flag_emoji %></span>
                 <span><%= team.name %></span>
@@ -123,7 +121,7 @@
           <%= link_to "Full table →", leaderboard_path, class: "text-sm font-semibold text-pitch hover:text-pitch-dark" %>
         </div>
 
-        <% top_players = LeaderboardService.fetch_rows.first(5) %>
+        <% top_players = @top_rows %>
         <% if top_players.any? %>
           <div class="mt-4 overflow-x-auto">
             <table class="table table-sm">

@@ -1,8 +1,8 @@
 <% content_for :title, "Leaderboard" %>
 
-<%# Subscribe to live updates: ScoreFixtureJob broadcasts a replace targeting
-    id="leaderboard-table" (the root element of the _table partial below). %>
-<%= turbo_stream_from "leaderboard" %>
+<%# Subscribe to live updates: ScoreFixtureJob broadcasts a refresh to "results"
+    after scoring, so this page re-GETs itself and morphs the new standings. %>
+<%= turbo_stream_from "results" %>
 
 <% top3 = @rows.first(3) %>
 

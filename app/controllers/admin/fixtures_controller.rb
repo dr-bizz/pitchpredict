@@ -1,6 +1,6 @@
 module Admin
   class FixturesController < BaseController
-    before_action :set_fixture, only: %i[ edit update ]
+    before_action :set_fixture, only: %i[ edit update row ]
 
     def index
       # NOTE: presence_in returns nil for blank/unknown values, so bad params
@@ -18,6 +18,12 @@ module Admin
     end
 
     def edit
+      # turbo_stream: swap the row in place for an inline edit form (edit.turbo_stream.erb).
+      # html: full edit page as a no-JS fallback.
+      respond_to do |format|
+        format.turbo_stream
+        format.html
+      end
     end
 
     def update
@@ -25,18 +31,44 @@ module Admin
       # before a result can be entered — guard here for a friendly message; the
       # Fixture model also refuses to finish a teams-unknown match.
       unless @fixture.teams_known?
-        return redirect_to admin_knockout_fixtures_path,
-                           alert: "Set both teams for this match before entering a result."
+        respond_to do |format|
+          format.turbo_stream do
+            @fixture.errors.add(:base, "Set both teams for this match before entering a result.")
+            render :update, status: :unprocessable_entity
+          end
+          format.html do
+            redirect_to admin_knockout_fixtures_path,
+                        alert: "Set both teams for this match before entering a result."
+          end
+        end
+        return
       end
 
       # Entering a result always marks the fixture finished; the Fixture model
       # validates that both scores are then present and >= 0.
       if @fixture.update(result_params.merge(status: :finished))
         ScoreFixtureJob.perform_later(@fixture.id)
-        redirect_to admin_fixtures_path,
-                    notice: "Result saved: #{@fixture.home_display} #{@fixture.home_score}–#{@fixture.away_score} #{@fixture.away_display}. Predictions are being scored."
+        respond_to do |format|
+          format.turbo_stream # update.turbo_stream.erb — swap row to result + toast
+          format.html do
+            redirect_to admin_fixtures_path,
+                        notice: "Result saved: #{@fixture.home_display} #{@fixture.home_score}–#{@fixture.away_score} #{@fixture.away_display}. Predictions are being scored."
+          end
+        end
       else
-        render :edit, status: :unprocessable_entity
+        respond_to do |format|
+          format.turbo_stream { render :update, status: :unprocessable_entity }
+          format.html { render :edit, status: :unprocessable_entity }
+        end
+      end
+    end
+
+    # GET member action backing the inline edit's Cancel link: re-render the
+    # display row, reverting the in-place form.
+    def row
+      respond_to do |format|
+        format.turbo_stream
+        format.html { redirect_to admin_fixtures_path }
       end
     end
 

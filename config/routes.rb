@@ -24,7 +24,9 @@ Rails.application.routes.draw do
 
   # Admin: enter/correct results, which triggers rescoring.
   namespace :admin do
-    resources :fixtures, only: %i[ index edit update ]
+    resources :fixtures, only: %i[ index edit update ] do
+      get :row, on: :member
+    end
     resources :knockout_fixtures, only: %i[ index update ]
   end
 
