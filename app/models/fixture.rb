@@ -23,6 +23,9 @@ class Fixture < ApplicationRecord
   scope :upcoming, -> { where(kickoff_at: Time.current..).order(:kickoff_at) }
   scope :past, -> { where(kickoff_at: ...Time.current).order(kickoff_at: :desc) }
   scope :by_stage, ->(stage) { where(stage: stage) }
+  # Query-side counterpart to #teams_known?: both qualifiers entered, so a match
+  # with a still-TBD slot is excluded (nothing to predict / count yet).
+  scope :teams_set, -> { where.not(home_team_id: nil).where.not(away_team_id: nil) }
   # Query-level twin of #locked? — the matches no longer open to prediction.
   # NOTE: status <> scheduled(0) captures live/finished-before-kickoff, so this
   # is intentionally broader than the temporal `past` scope.

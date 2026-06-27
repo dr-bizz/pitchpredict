@@ -1,26 +1,17 @@
 class FixturesController < ApplicationController
-  # GET /predictions — the predictions grid. The "upcoming" tab lists every
-  # not-yet-started match in date order; the others filter by tournament stage.
+  # GET /predictions — the predictions grid. Two independent, combinable filter
+  # axes: STATUS (all / upcoming / unpredicted / predicted / past) and STAGE
+  # (all / group / r32 / … / final). Both default to "all"; unknown params fall
+  # back to "all". PredictionsGridQuery turns the pair into ordered sections.
   def index
-    @stage = params[:stage].presence_in(FixturesHelper::STAGE_TABS.keys) || "upcoming"
+    @status = params[:status].presence_in(FixturesHelper::STATUS_TABS.keys) || "all"
+    @stage = params[:stage].presence_in(FixturesHelper::STAGE_TABS.keys) || "all"
 
-    fixtures = Fixture.includes(:home_team, :away_team, :stadium)
-
-    if @stage == "upcoming"
-      # Soonest kickoff first — only matches still open to predict.
-      @fixtures = fixtures.upcoming.to_a
-      # Ordered hash of date => fixtures (upcoming is already kickoff-ascending),
-      # grouped in the app's display zone so headers match the card times.
-      @by_date = @fixtures.group_by { |fixture| fixture.kickoff_at.in_time_zone.to_date }
-    else
-      @fixtures = fixtures.by_stage(@stage).order(:match_number, :kickoff_at).to_a
-      # NOTE: assumption — group-stage fixtures always pair teams from the same
-      # group, so the home team's group_name is the fixture's group.
-      @grouped = @fixtures.group_by { |fixture| fixture.home_team.group_name }.sort_by(&:first) if @stage == "group"
-    end
+    query = PredictionsGridQuery.new(user: Current.user, status: @status, stage: @stage)
+    @sections = query.sections
 
     # Avoid an N+1: one query for all of the current user's predictions on this page.
     @predictions_by_fixture_id =
-      Current.user.predictions.where(fixture_id: @fixtures.map(&:id)).index_by(&:fixture_id)
+      Current.user.predictions.where(fixture_id: query.fixtures.map(&:id)).index_by(&:fixture_id)
   end
 end
