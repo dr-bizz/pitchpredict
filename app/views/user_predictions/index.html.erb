@@ -1,0 +1,71 @@
+<% content_for :title, "#{@user.name}'s Predictions" %>
+
+<div class="space-y-6">
+  <header>
+    <p class="text-sm text-charcoal/60">
+      <%= link_to "← Leaderboard", leaderboard_path, class: "link link-hover" %>
+    </p>
+    <h1 class="page-title mt-1"><%= @user.name %>'s predictions</h1>
+    <p class="mt-1 text-sm text-charcoal/60">
+      <% if @user_row %>
+        Rank #<%= @user_row.rank %> · <%= @user_row.total_points %> pts · their picks vs yours
+      <% else %>
+        Their picks vs yours
+      <% end %>
+    </p>
+  </header>
+
+  <nav role="tablist" class="tabs tabs-box flex-wrap gap-1 bg-base-200 p-1" aria-label="Prediction stages">
+    <% UserPredictionsHelper::PREDICTION_TABS.each do |stage, label| %>
+      <%= link_to label, user_predictions_path(@user, stage: stage),
+                  role: "tab",
+                  class: "tab #{'tab-active' if stage == @stage}",
+                  aria: { current: stage == @stage ? "page" : nil } %>
+    <% end %>
+  </nav>
+
+  <% if @fixtures.empty? %>
+    <div class="card bg-base-100 shadow-card rounded-2xl">
+      <div class="card-body items-center text-center text-sm text-base-content/60">
+        No matches here yet — predictions appear once a match kicks off.
+      </div>
+    </div>
+  <% elsif @by_date %>
+    <% @by_date.each do |date, fixtures| %>
+      <section class="space-y-3">
+        <h2 class="section-title"><%= date.strftime("%A %-d %B") %></h2>
+        <div class="grid gap-4 min-[851px]:grid-cols-2">
+          <% fixtures.each do |fixture| %>
+            <%= render "user_predictions/comparison_card",
+                       fixture: fixture, owner: @user,
+                       owner_prediction: @owner_predictions[fixture.id],
+                       viewer_prediction: @viewer_predictions[fixture.id] %>
+          <% end %>
+        </div>
+      </section>
+    <% end %>
+  <% elsif @grouped %>
+    <% @grouped.each do |group_name, fixtures| %>
+      <section class="space-y-3">
+        <h2 class="section-title">Group <%= group_name %></h2>
+        <div class="grid gap-4 min-[851px]:grid-cols-2">
+          <% fixtures.each do |fixture| %>
+            <%= render "user_predictions/comparison_card",
+                       fixture: fixture, owner: @user,
+                       owner_prediction: @owner_predictions[fixture.id],
+                       viewer_prediction: @viewer_predictions[fixture.id] %>
+          <% end %>
+        </div>
+      </section>
+    <% end %>
+  <% else %>
+    <div class="grid gap-4 min-[851px]:grid-cols-2">
+      <% @fixtures.each do |fixture| %>
+        <%= render "user_predictions/comparison_card",
+                   fixture: fixture, owner: @user,
+                   owner_prediction: @owner_predictions[fixture.id],
+                   viewer_prediction: @viewer_predictions[fixture.id] %>
+      <% end %>
+    </div>
+  <% end %>
+</div>

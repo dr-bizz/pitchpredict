@@ -19,6 +19,10 @@ Rails.application.routes.draw do
   # Leaderboard (live-updating via Turbo Streams broadcast to "leaderboard").
   resource :leaderboard, only: :show
 
+  # Read-only: view another player's predictions for matches no longer open to
+  # predict (linked from the leaderboard). Numeric id; auth required.
+  get "users/:id/predictions", to: "user_predictions#index", as: :user_predictions
+
   # One champion pick per user; can be created/changed until the tournament starts.
   resource :champion_pick, only: %i[ create update ]
 
