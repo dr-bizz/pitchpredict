@@ -26,6 +26,10 @@ class Fixture < ApplicationRecord
   # Query-side counterpart to #teams_known?: both qualifiers entered, so a match
   # with a still-TBD slot is excluded (nothing to predict / count yet).
   scope :teams_set, -> { where.not(home_team_id: nil).where.not(away_team_id: nil) }
+  # Query-level twin of #locked? — the matches no longer open to prediction.
+  # NOTE: status <> scheduled(0) captures live/finished-before-kickoff, so this
+  # is intentionally broader than the temporal `past` scope.
+  scope :locked, -> { where("kickoff_at <= ? OR status <> ?", Time.current, statuses[:scheduled]) }
 
   # Predictions lock at kickoff — or earlier, the moment a result exists.
   # NOTE: admins may enter a result before kickoff (abandoned/rescheduled

@@ -27,6 +27,14 @@ class DashboardControllerTest < ActionDispatch::IntegrationTest
     assert_select "h2", text: "How it works"
   end
 
+  test "top-five player names link to their predictions, except the viewer" do
+    sign_in_as(@user)  # @user is users(:one)
+    get root_path
+
+    assert_select "a[href=?]", user_predictions_path(users(:two))
+    assert_select "a[href=?]", user_predictions_path(@user), count: 0
+  end
+
   test "shows locked champion pick state once the pick deadline has passed" do
     # Champion picks lock at a fixed deadline (ChampionPick::PICK_DEADLINE), not
     # at first kickoff, so travel past it to exercise the locked state regardless
