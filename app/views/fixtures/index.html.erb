@@ -13,56 +13,57 @@
     </p>
   </header>
 
-  <nav role="tablist" class="tabs tabs-box flex-wrap gap-1 bg-base-200 p-1" aria-label="Match filters">
-    <% FixturesHelper::STAGE_TABS.each do |stage, label| %>
-      <%= link_to label, predictions_path(stage: stage),
-                  role: "tab",
-                  class: "tab #{'tab-active' if stage == @stage}",
-                  aria: { current: stage == @stage ? "page" : nil } %>
-    <% end %>
-  </nav>
+  <div class="space-y-2">
+    <nav role="tablist" class="tabs tabs-box flex-wrap gap-1 bg-base-200 p-1" aria-label="Status">
+      <% FixturesHelper::STATUS_TABS.each do |status, label| %>
+        <%= link_to label, predictions_path(status: status, stage: @stage),
+                    role: "tab",
+                    class: "tab #{'tab-active' if status == @status}",
+                    aria: { current: status == @status ? "page" : nil } %>
+      <% end %>
+    </nav>
 
-  <% if @fixtures.empty? %>
+    <nav role="tablist" class="tabs tabs-box flex-wrap gap-1 bg-base-200 p-1" aria-label="Stage">
+      <% FixturesHelper::STAGE_TABS.each do |stage, label| %>
+        <%= link_to label, predictions_path(stage: stage, status: @status),
+                    role: "tab",
+                    class: "tab #{'tab-active' if stage == @stage}",
+                    aria: { current: stage == @stage ? "page" : nil } %>
+      <% end %>
+    </nav>
+  </div>
+
+  <% if @sections.empty? %>
     <div class="card bg-base-100 shadow-card rounded-2xl">
       <div class="card-body items-center text-center text-sm text-base-content/60">
-        <%= empty_fixtures_message(@stage) %>
+        <%= empty_fixtures_message(@status) %>
       </div>
     </div>
-  <% elsif @by_date %>
-    <%# Upcoming / Unpredicted (soonest first) and Past (most recent first),
-        grouped under a heading per day. %>
-    <% @by_date.each do |date, fixtures| %>
-      <section class="space-y-3">
-        <h2 class="section-title"><%= date.strftime("%A %-d %B") %></h2>
-        <div class="grid gap-4 min-[851px]:grid-cols-2">
-          <% fixtures.each do |fixture| %>
-            <%= render "fixtures/fixture_card",
-                       fixture: fixture,
-                       prediction: @predictions_by_fixture_id[fixture.id] %>
-          <% end %>
-        </div>
-      </section>
-    <% end %>
-  <% elsif @grouped %>
-    <% @grouped.each do |group_name, fixtures| %>
-      <section class="space-y-3">
-        <h2 class="section-title">Group <%= group_name %></h2>
-        <div class="grid gap-4 min-[851px]:grid-cols-2">
-          <% fixtures.each do |fixture| %>
-            <%= render "fixtures/fixture_card",
-                       fixture: fixture,
-                       prediction: @predictions_by_fixture_id[fixture.id] %>
-          <% end %>
-        </div>
-      </section>
-    <% end %>
   <% else %>
-    <div class="grid gap-4 min-[851px]:grid-cols-2">
-      <% @fixtures.each do |fixture| %>
-        <%= render "fixtures/fixture_card",
-                   fixture: fixture,
-                   prediction: @predictions_by_fixture_id[fixture.id] %>
+    <%# Day-grouped views split into upcoming (soonest first) then past (most
+        recent first). A "Kicked off" divider marks that boundary the first time
+        a past section follows an upcoming one. Stage-grouped views (Groups, a
+        single knockout round) carry no past tag, so no divider appears. %>
+    <% seen_upcoming = false %>
+    <% rendered_divider = false %>
+    <% @sections.each do |section| %>
+      <% if section.past && seen_upcoming && !rendered_divider %>
+        <div class="divider text-xs uppercase tracking-wide text-base-content/50">Kicked off</div>
+        <% rendered_divider = true %>
       <% end %>
-    </div>
+      <section class="space-y-3">
+        <% if section.heading %>
+          <h2 class="section-title"><%= section.heading %></h2>
+        <% end %>
+        <div class="grid gap-4 min-[851px]:grid-cols-2">
+          <% section.fixtures.each do |fixture| %>
+            <%= render "fixtures/fixture_card",
+                       fixture: fixture,
+                       prediction: @predictions_by_fixture_id[fixture.id] %>
+          <% end %>
+        </div>
+      </section>
+      <% seen_upcoming = true unless section.past %>
+    <% end %>
   <% end %>
 </div>

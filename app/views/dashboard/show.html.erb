@@ -146,7 +146,7 @@
                           <%= row.user.name.to_s.first&.upcase %>
                         </span>
                         <span class="font-medium text-charcoal">
-                          <%= row.user.name %><%= " (you)" if is_you %>
+                          <%= player_predictions_link(row.user, viewer: Current.user, name: is_you ? "#{row.user.name} (you)" : row.user.name) %>
                         </span>
                       </div>
                     </td>

@@ -19,5 +19,15 @@ export default class extends Controller {
     row.dataset.currentUser = "true"
     row.classList.add("bg-pitch/5")
     row.querySelector("[data-you-badge]")?.removeAttribute("hidden")
+
+    // A broadcast renders with viewer: nil, so the viewer's own name comes back
+    // as a link to their predictions. Swap it for plain text — you don't link to
+    // yourself (mirrors the server-rendered, signed-in case).
+    const ownLink = row.querySelector("[data-player-link]")
+    if (ownLink) {
+      const plain = document.createElement("span")
+      plain.textContent = ownLink.textContent.trim()
+      ownLink.replaceWith(plain)
+    }
   }
 }

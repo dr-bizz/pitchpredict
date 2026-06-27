@@ -56,10 +56,18 @@ class DashboardControllerTest < ActionDispatch::IntegrationTest
     get root_path
 
     assert_response :success
-    expected = Fixture.upcoming.teams_set
+    expected = Fixture.upcoming.scheduled.teams_set
                       .where.not(id: @user.predictions.select(:fixture_id)).count
     assert_select "section.hero-gradient p",
                   text: /#{expected} #{"match".pluralize(expected)} remaining to predict/
+  end
+
+  test "top-five player names link to their predictions, except the viewer" do
+    sign_in_as(@user)  # @user is users(:one)
+    get root_path
+
+    assert_select "a[href=?]", user_predictions_path(users(:two))
+    assert_select "a[href=?]", user_predictions_path(@user), count: 0
   end
 
   test "shows locked champion pick state once the pick deadline has passed" do
