@@ -7,15 +7,38 @@ class FixturesControllerTest < ActionDispatch::IntegrationTest
     assert_redirected_to new_session_path
   end
 
-  test "shows upcoming matches by date by default" do
+  test "defaults to all matches grouped by day, upcoming and past together" do
     sign_in_as users(:one)
     get predictions_path
 
     assert_response :success
-    assert_select "a[aria-current=page]", text: "Upcoming"
-    # Upcoming groups by day (not by group), and only future matches appear.
+    # Both axes default to "All", so every match shows regardless of time.
+    assert_select "nav[aria-label=Status] a[aria-current=page]", text: "All"
+    assert_select "nav[aria-label=Stage] a[aria-current=page]", text: "All"
     assert_select "turbo-frame#prediction_fixture_#{fixtures(:upcoming_group).id}"
-    assert_select "turbo-frame#prediction_fixture_#{fixtures(:finished_group).id}", count: 0
+    assert_select "turbo-frame#prediction_fixture_#{fixtures(:finished_group).id}"
+  end
+
+  test "renders a Kicked off divider between upcoming and past in the all view" do
+    sign_in_as users(:one)
+    get predictions_path
+
+    assert_response :success
+    assert_match "Kicked off", response.body
+    # The divider sits after the upcoming match and before the past one.
+    divider = response.body.index("Kicked off")
+    upcoming = response.body.index("prediction_fixture_#{fixtures(:upcoming_group).id}")
+    past = response.body.index("prediction_fixture_#{fixtures(:finished_group).id}")
+    assert upcoming < divider && divider < past,
+           "expected order: upcoming match, Kicked off divider, past match"
+  end
+
+  test "exposes both a Status and a Stage tablist" do
+    sign_in_as users(:one)
+    get predictions_path
+
+    assert_select "nav[role=tablist][aria-label=Status]"
+    assert_select "nav[role=tablist][aria-label=Stage]"
   end
 
   test "shows the group stage with group headings and per-fixture frames" do
@@ -25,7 +48,7 @@ class FixturesControllerTest < ActionDispatch::IntegrationTest
     assert_response :success
     assert_select "h2", text: "Group A"
     assert_select "turbo-frame#prediction_fixture_#{fixtures(:upcoming_group).id}"
-    assert_select "a[aria-current=page]", text: "Groups"
+    assert_select "nav[aria-label=Stage] a[aria-current=page]", text: "Groups"
     assert_match "Spain", response.body
     assert_match "MetLife Stadium", response.body
     assert_match "East Rutherford", response.body
@@ -44,14 +67,9 @@ class FixturesControllerTest < ActionDispatch::IntegrationTest
     get predictions_path(stage: "group")
 
     assert_response :success
-    # Finished card shows the real result: a prominent score block (2–1) and a
-    # "Result: 2–1" footer. The en-dash separator is its own span, so assert the
-    # footer result text rather than a brittle whitespace match.
     assert_select "turbo-frame#prediction_fixture_#{fixtures(:finished_group).id} footer",
                   text: /Result:\s*2–1/
     assert_select "span.badge.badge-warning", text: "+5 pts"
-    # A finished fixture is locked from editing: it renders no form and no
-    # editable score inputs (the result is shown as a static score block).
     assert_select "turbo-frame#prediction_fixture_#{fixtures(:finished_group).id} form", count: 0
     assert_select "turbo-frame#prediction_fixture_#{fixtures(:finished_group).id} input", count: 0
   end
@@ -64,31 +82,41 @@ class FixturesControllerTest < ActionDispatch::IntegrationTest
                   text: "No prediction"
   end
 
-  test "filters fixtures by stage with an empty state" do
+  test "shows an empty state when no matches match the filters" do
     sign_in_as users(:one)
     get predictions_path(stage: "final")
 
     assert_response :success
-    assert_select "a[aria-current=page]", text: "Final"
-    assert_match "No fixtures scheduled", response.body
+    assert_select "nav[aria-label=Stage] a[aria-current=page]", text: "Final"
+    assert_match "No matches", response.body
   end
 
-  test "falls back to the upcoming view for unknown stage params" do
+  test "falls back to All for unknown status and stage params" do
     sign_in_as users(:one)
-    get predictions_path(stage: "bogus")
+    get predictions_path(status: "bogus", stage: "bogus")
 
     assert_response :success
-    assert_select "a[aria-current=page]", text: "Upcoming"
+    assert_select "nav[aria-label=Status] a[aria-current=page]", text: "All"
+    assert_select "nav[aria-label=Stage] a[aria-current=page]", text: "All"
     assert_select "turbo-frame#prediction_fixture_#{fixtures(:upcoming_group).id}"
   end
 
-  test "upcoming lists matches with the soonest kickoff first" do
+  test "status chips preserve the selected stage and vice versa" do
     sign_in_as users(:one)
-    # upcoming_group kicks off in 7 days; add a later match to pin the ordering.
+    get predictions_path(stage: "group")
+
+    # The Past status chip keeps stage=group in its link.
+    assert_select "nav[aria-label=Status] a[href=?]", predictions_path(status: "past", stage: "group")
+    # The R16 stage chip keeps the current status in its link.
+    assert_select "nav[aria-label=Stage] a[href=?]", predictions_path(stage: "r16", status: "all")
+  end
+
+  test "upcoming status lists matches with the soonest kickoff first" do
+    sign_in_as users(:one)
     later = Fixture.create!(stadium: stadia(:azteca), kickoff_at: 30.days.from_now,
                             stage: :r32, home_team: teams(:brazil), away_team: teams(:france),
                             status: :scheduled, match_number: 99)
-    get predictions_path
+    get predictions_path(status: "upcoming")
 
     assert_response :success
     sooner = response.body.index("prediction_fixture_#{fixtures(:upcoming_group).id}")
@@ -97,79 +125,48 @@ class FixturesControllerTest < ActionDispatch::IntegrationTest
            "expected the sooner kickoff to render before the later one"
   end
 
-  test "past shows kicked-off matches and excludes upcoming ones" do
+  test "past status shows kicked-off matches, most recent first, excludes upcoming" do
     sign_in_as users(:one)
-    get predictions_path(stage: "past")
-
-    assert_response :success
-    assert_select "a[aria-current=page]", text: "Past"
-    assert_select "turbo-frame#prediction_fixture_#{fixtures(:finished_group).id}"
-    assert_select "turbo-frame#prediction_fixture_#{fixtures(:upcoming_group).id}", count: 0
-  end
-
-  test "past lists matches with the most recent kickoff first" do
-    sign_in_as users(:one)
-    # finished_group is 2 days ago; add an older match to pin the descending order.
     older = Fixture.create!(stadium: stadia(:azteca), kickoff_at: 10.days.ago,
                             stage: :group, home_team: teams(:spain), away_team: teams(:canada),
                             status: :finished, home_score: 1, away_score: 0, match_number: 98)
-    get predictions_path(stage: "past")
+    get predictions_path(status: "past")
 
     assert_response :success
+    assert_select "nav[aria-label=Status] a[aria-current=page]", text: "Past"
+    assert_select "turbo-frame#prediction_fixture_#{fixtures(:upcoming_group).id}", count: 0
     recent = response.body.index("prediction_fixture_#{fixtures(:finished_group).id}")
     older_pos = response.body.index("prediction_fixture_#{older.id}")
     assert recent && older_pos && recent < older_pos,
            "expected the more-recent kickoff to render before the older one"
   end
 
-  test "unpredicted shows open matches the player has not picked yet" do
-    # User two has no prediction on the open upcoming_group.
+  test "unpredicted status shows open matches the player has not picked yet" do
     sign_in_as users(:two)
-    get predictions_path(stage: "unpredicted")
+    get predictions_path(status: "unpredicted")
 
     assert_response :success
-    assert_select "a[aria-current=page]", text: "Unpredicted"
+    assert_select "nav[aria-label=Status] a[aria-current=page]", text: "Unpredicted"
     assert_select "turbo-frame#prediction_fixture_#{fixtures(:upcoming_group).id}"
-    # A kicked-off match can no longer be predicted, so it never shows here.
     assert_select "turbo-frame#prediction_fixture_#{fixtures(:finished_group).id}", count: 0
   end
 
-  test "unpredicted excludes matches the player has already predicted" do
-    # User one predicted upcoming_group, leaving nothing open to pick.
+  test "unpredicted status shows a tailored caught-up message when nothing is open" do
     sign_in_as users(:one)
-    get predictions_path(stage: "unpredicted")
+    get predictions_path(status: "unpredicted")
 
     assert_response :success
     assert_select "turbo-frame#prediction_fixture_#{fixtures(:upcoming_group).id}", count: 0
     assert_match "all caught up", response.body
   end
 
-  test "unpredicted excludes future matches whose teams are not yet set" do
+  test "status and stage filters combine" do
     sign_in_as users(:two)
-    tbd = Fixture.create!(stadium: stadia(:metlife), kickoff_at: 20.days.from_now,
-                          stage: :r32, home_slot_label: "Winner Group A",
-                          away_slot_label: "Runner-up Group B", match_number: 73)
-    get predictions_path(stage: "unpredicted")
+    get predictions_path(status: "past", stage: "group")
 
     assert_response :success
-    assert_select "turbo-frame#prediction_fixture_#{tbd.id}", count: 0
-  end
-
-  test "unpredicted excludes future matches locked by status (live or pre-kickoff result)" do
-    # A live or already-finished match in the future is locked even though its
-    # kickoff is still ahead — the .scheduled guard must keep it off this tab.
-    sign_in_as users(:two)
-    live = Fixture.create!(stadium: stadia(:azteca), kickoff_at: 5.days.from_now,
-                           stage: :r32, home_team: teams(:brazil), away_team: teams(:france),
-                           status: :live, match_number: 80)
-    finished_future = Fixture.create!(stadium: stadia(:metlife), kickoff_at: 6.days.from_now,
-                                      stage: :r32, home_team: teams(:spain), away_team: teams(:canada),
-                                      status: :finished, home_score: 1, away_score: 0, match_number: 81)
-    get predictions_path(stage: "unpredicted")
-
-    assert_response :success
-    assert_select "turbo-frame#prediction_fixture_#{live.id}", count: 0
-    assert_select "turbo-frame#prediction_fixture_#{finished_future.id}", count: 0
+    assert_select "turbo-frame#prediction_fixture_#{fixtures(:finished_group).id}"
+    assert_select "turbo-frame#prediction_fixture_#{fixtures(:upcoming_group).id}", count: 0
   end
 
   test "knockout fixture with unknown teams renders as a non-predictable TBD card" do
@@ -181,8 +178,6 @@ class FixturesControllerTest < ActionDispatch::IntegrationTest
     assert_response :success
     assert_includes response.body, "Winner Group A"
     assert_includes response.body, "Runner-up Group B"
-    # The TBD card renders no prediction form and no editable score inputs, and
-    # shows the "Teams to be announced" affordance instead.
     frame = "turbo-frame#prediction_fixture_#{ko.id}"
     assert_select "#{frame} form", count: 0
     assert_select "#{frame} input", count: 0

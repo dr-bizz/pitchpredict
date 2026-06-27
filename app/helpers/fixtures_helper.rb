@@ -1,11 +1,18 @@
 module FixturesHelper
-  # Tab order + labels for the predictions grid. "upcoming", "unpredicted" and
-  # "past" are virtual tabs (filtered by time/prediction status rather than
-  # stage); the rest match Fixture.stages.
-  STAGE_TABS = {
+  # The predictions grid filters on two independent axes. STATUS filters by time
+  # and prediction state; STAGE filters by tournament stage. Both default to
+  # "all" and combine (e.g. Unpredicted + R16). Keys map to PredictionsGridQuery
+  # statuses and Fixture.stages respectively.
+  STATUS_TABS = {
+    "all" => "All",
     "upcoming" => "Upcoming",
     "unpredicted" => "Unpredicted",
-    "past" => "Past",
+    "predicted" => "Predicted",
+    "past" => "Past"
+  }.freeze
+
+  STAGE_TABS = {
+    "all" => "All",
     "group" => "Groups",
     "r32" => "R32",
     "r16" => "R16",
@@ -15,17 +22,13 @@ module FixturesHelper
     "final" => "Final"
   }.freeze
 
-  # Empty-state copy per tab. Each virtual tab gets tailored copy; every real
-  # stage shares the "bracket not set yet" fallback.
-  EMPTY_FIXTURES_MESSAGES = {
-    "upcoming" => "No upcoming matches — every game has kicked off.",
-    "unpredicted" => "You're all caught up — every available match has a prediction.",
-    "past" => "No matches have kicked off yet."
-  }.freeze
-
-  def empty_fixtures_message(stage)
-    EMPTY_FIXTURES_MESSAGES.fetch(stage) do
-      "No fixtures scheduled for this stage yet. Check back once the bracket is set."
+  # Empty-state copy. "Unpredicted" gets tailored "all caught up" copy; every
+  # other filter combination shares a neutral message.
+  def empty_fixtures_message(status)
+    if status == "unpredicted"
+      "You're all caught up — every available match has a prediction."
+    else
+      "No matches match these filters."
     end
   end
 
