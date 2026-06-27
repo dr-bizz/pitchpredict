@@ -1,6 +1,6 @@
 module Admin
   class FixturesController < BaseController
-    before_action :set_fixture, only: %i[ edit update row ]
+    before_action :set_fixture, only: %i[ edit update ]
 
     def index
       # NOTE: presence_in returns nil for blank/unknown values, so bad params
@@ -18,12 +18,8 @@ module Admin
     end
 
     def edit
-      # turbo_stream: swap the row in place for an inline edit form (edit.turbo_stream.erb).
-      # html: full edit page as a no-JS fallback.
-      respond_to do |format|
-        format.turbo_stream
-        format.html
-      end
+      # Full-page result form — a no-JS / deep-link fallback. In normal use the
+      # admin index shows the score inputs inline, so nothing links here.
     end
 
     def update
@@ -60,15 +56,6 @@ module Admin
           format.turbo_stream { render :update, status: :unprocessable_entity }
           format.html { render :edit, status: :unprocessable_entity }
         end
-      end
-    end
-
-    # GET member action backing the inline edit's Cancel link: re-render the
-    # display row, reverting the in-place form.
-    def row
-      respond_to do |format|
-        format.turbo_stream
-        format.html { redirect_to admin_fixtures_path }
       end
     end
 

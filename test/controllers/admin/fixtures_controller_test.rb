@@ -49,22 +49,22 @@ module Admin
       assert_select "td", text: /Spain/
     end
 
-    test "edit renders the result form" do
+    test "index shows inline score inputs for a scoreable fixture, with no Enter result button" do
+      sign_in_as @admin
+      get admin_fixtures_path
+      assert_response :success
+      assert_select "tr##{dom_id(@fixture)} input[name='fixture[home_score]']"
+      assert_select "tr##{dom_id(@fixture)} input[name='fixture[away_score]']"
+      assert_select "tr##{dom_id(@fixture)} form[action=?]", admin_fixture_path(@fixture)
+      assert_select "a", text: "Enter result", count: 0
+    end
+
+    test "edit renders the full-page result form fallback" do
       sign_in_as @admin
       get edit_admin_fixture_path(@fixture)
       assert_response :success
       assert_select "form[action=?]", admin_fixture_path(@fixture)
       assert_select "input[name='fixture[home_score]']"
-    end
-
-    test "edit as turbo_stream replaces the row with the inline form" do
-      sign_in_as @admin
-      get edit_admin_fixture_path(@fixture), as: :turbo_stream
-      assert_response :success
-      assert_equal "text/vnd.turbo-stream.html", response.media_type
-      assert_select "turbo-stream[action=replace][target=?]", dom_id(@fixture)
-      assert_select "turbo-stream template form[action=?]", admin_fixture_path(@fixture)
-      assert_select "turbo-stream template input[name='fixture[home_score]']"
     end
 
     test "update as turbo_stream swaps the row to the result and enqueues scoring" do
@@ -81,7 +81,7 @@ module Admin
       assert @fixture.reload.finished?
     end
 
-    test "update as turbo_stream re-renders the form row with errors on failure" do
+    test "update as turbo_stream re-renders the row inputs with an error toast on failure" do
       sign_in_as @admin
 
       assert_no_enqueued_jobs only: ScoreFixtureJob do
@@ -91,16 +91,8 @@ module Admin
       assert_response :unprocessable_entity
       assert_select "turbo-stream[action=replace][target=?]", dom_id(@fixture)
       assert_select "turbo-stream template input[name='fixture[home_score]']"
+      assert_select "turbo-stream[action=prepend][target=admin-flash] .alert-error"
       assert @fixture.reload.scheduled?
-    end
-
-    test "row as turbo_stream renders the display row" do
-      sign_in_as @admin
-      get row_admin_fixture_path(@fixture), as: :turbo_stream
-      assert_response :success
-      assert_equal "text/vnd.turbo-stream.html", response.media_type
-      assert_select "turbo-stream[action=replace][target=?]", dom_id(@fixture)
-      assert_select "turbo-stream template a", text: "Enter result"
     end
 
     test "update saves the result, finishes the fixture and enqueues scoring" do
