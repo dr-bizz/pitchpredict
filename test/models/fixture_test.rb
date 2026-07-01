@@ -112,4 +112,17 @@ class FixtureTest < ActiveSupport::TestCase
     assert_not tbd.valid?
     assert tbd.errors.added?(:base, "Cannot finish a match before both teams are known")
   end
+
+  test "penalty_winner round-trips as a home/away enum" do
+    fixture = fixtures(:upcoming_group)
+    fixture.penalty_winner = :away
+    assert_equal "away", fixture.penalty_winner
+    assert fixture.penalty_winner_away?
+  end
+
+  test "knockout? is true for any non-group stage" do
+    assert_not fixtures(:upcoming_group).knockout?
+    assert Fixture.new(stage: :r32).knockout?
+    assert Fixture.new(stage: :final).knockout?
+  end
 end

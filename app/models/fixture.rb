@@ -9,6 +9,7 @@ class Fixture < ApplicationRecord
   # Use by_stage(:group) instead; instance predicates (group?, final?, ...) still work.
   enum :stage, { group: 0, r32: 1, r16: 2, qf: 3, sf: 4, third_place: 5, final: 6 }, scopes: false
   enum :status, { scheduled: 0, live: 1, finished: 2 }
+  enum :penalty_winner, { home: 0, away: 1 }, prefix: true, scopes: false
 
   validates :kickoff_at, presence: true
   validates :home_score, :away_score,
@@ -44,6 +45,9 @@ class Fixture < ApplicationRecord
   def teams_known?
     home_team_id.present? && away_team_id.present?
   end
+
+  # Any non-group match — the stages that can go to a penalty shootout.
+  def knockout? = !group?
 
   def open_for_predictions?
     teams_known? && !locked?

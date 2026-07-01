@@ -61,4 +61,11 @@ class PredictionTest < ActiveSupport::TestCase
     assert_not prediction.valid?
     assert prediction.errors.added?(:base, "Teams for this match haven't been announced yet")
   end
+
+  test "penalty_winner round-trips as a home/away enum" do
+    prediction = predictions(:one_upcoming)
+    prediction.penalty_winner = :home
+    assert_equal "home", prediction.penalty_winner
+    assert prediction.penalty_winner_home?
+  end
 end

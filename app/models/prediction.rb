@@ -1,6 +1,7 @@
 class Prediction < ApplicationRecord
   belongs_to :user
   belongs_to :fixture
+  enum :penalty_winner, { home: 0, away: 1 }, prefix: true, scopes: false
 
   validates :home_score, :away_score,
             presence: true,
