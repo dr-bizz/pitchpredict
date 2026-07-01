@@ -69,12 +69,12 @@
           <div data-penalty-target="picker" class="<%= "hidden" unless level %> mt-4">
             <span class="label label-text font-semibold">Won the penalty shootout</span>
             <div class="mt-1 flex gap-2">
-              <label class="btn btn-outline has-[:checked]:btn-primary">
+              <label class="btn btn-outline has-[:checked]:border-primary has-[:checked]:bg-primary has-[:checked]:text-primary-content">
                 <%= form.radio_button :penalty_winner, "home", checked: @fixture.penalty_winner_home?,
                       disabled: !level, required: level, class: "sr-only", data: { penalty_target: "option" } %>
                 <%= @fixture.home_display %>
               </label>
-              <label class="btn btn-outline has-[:checked]:btn-primary">
+              <label class="btn btn-outline has-[:checked]:border-primary has-[:checked]:bg-primary has-[:checked]:text-primary-content">
                 <%= form.radio_button :penalty_winner, "away", checked: @fixture.penalty_winner_away?,
                       disabled: !level, required: level, class: "sr-only", data: { penalty_target: "option" } %>
                 <%= @fixture.away_display %>
