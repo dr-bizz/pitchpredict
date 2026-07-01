@@ -68,4 +68,42 @@ class PredictionTest < ActiveSupport::TestCase
     assert_equal "home", prediction.penalty_winner
     assert prediction.penalty_winner_home?
   end
+
+  test "predicting a knockout draw requires a penalty winner" do
+    prediction = Prediction.new(user: users(:one), fixture: open_knockout_fixture,
+                                home_score: 1, away_score: 1)
+    assert_not prediction.valid?
+    assert prediction.errors[:penalty_winner].any?
+
+    prediction.penalty_winner = :home
+    assert prediction.valid?, prediction.errors.full_messages.to_sentence
+  end
+
+  test "a non-draw knockout prediction drops any penalty winner" do
+    prediction = Prediction.new(user: users(:one), fixture: open_knockout_fixture,
+                                home_score: 2, away_score: 1, penalty_winner: :home)
+    assert prediction.valid?
+    assert_nil prediction.penalty_winner
+  end
+
+  test "a group-stage draw prediction never carries a penalty winner" do
+    prediction = Prediction.new(user: users(:two), fixture: fixtures(:upcoming_group),
+                                home_score: 1, away_score: 1, penalty_winner: :away)
+    assert prediction.valid?
+    assert_nil prediction.penalty_winner
+  end
+
+  test "penalty_winner_team resolves against the fixture's teams" do
+    fixture = open_knockout_fixture
+    prediction = Prediction.new(user: users(:one), fixture: fixture,
+                                home_score: 0, away_score: 0, penalty_winner: :away)
+    assert_equal fixture.away_team, prediction.penalty_winner_team
+  end
+
+  private
+
+  def open_knockout_fixture
+    Fixture.create!(stadium: stadia(:metlife), kickoff_at: 7.days.from_now, stage: :r16,
+                    match_number: 89, home_team: teams(:spain), away_team: teams(:canada))
+  end
 end
