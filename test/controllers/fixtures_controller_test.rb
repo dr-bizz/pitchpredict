@@ -169,6 +169,18 @@ class FixturesControllerTest < ActionDispatch::IntegrationTest
     assert_select "turbo-frame#prediction_fixture_#{fixtures(:upcoming_group).id}", count: 0
   end
 
+  test "a finished knockout decided on penalties shows who advanced" do
+    sign_in_as users(:one)
+    Fixture.create!(stadium: stadia(:metlife), kickoff_at: 2.days.ago, stage: :sf,
+                    match_number: 101, home_team: teams(:spain), away_team: teams(:canada),
+                    status: :finished, home_score: 1, away_score: 1, penalty_winner: :home)
+
+    get predictions_path
+
+    assert_response :success
+    assert_match "Spain win on penalties", response.body
+  end
+
   test "knockout fixture with unknown teams renders as a non-predictable TBD card" do
     sign_in_as users(:one)
     ko = Fixture.create!(stadium: stadia(:metlife), kickoff_at: 20.days.from_now,

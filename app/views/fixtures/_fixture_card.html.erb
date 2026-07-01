@@ -54,6 +54,12 @@
         </div>
       </div>
 
+      <% if fixture.penalty_winner_team %>
+        <p class="text-center text-xs font-semibold text-charcoal/60">
+          <%= fixture.penalty_winner_team.name %> win on penalties
+        </p>
+      <% end %>
+
       <% if prediction.errors.any? %>
         <%# A save raced past kickoff/result entry: explain why it was rejected. %>
         <div class="alert alert-error mt-auto w-full py-2 text-xs" role="alert">
