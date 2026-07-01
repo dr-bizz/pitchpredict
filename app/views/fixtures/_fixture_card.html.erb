@@ -146,7 +146,9 @@
 
     <% else %>
       <%# --- Open: editable steppers (chevron up above / down below each input) --- %>
-      <%= form_with model: prediction, url: fixture_prediction_path(fixture), class: "mt-auto flex flex-1 flex-col gap-4" do |form| %>
+      <%= form_with model: prediction, url: fixture_prediction_path(fixture),
+            class: "mt-auto flex flex-1 flex-col gap-4",
+            data: { controller: "penalty" } do |form| %>
         <% if prediction.errors.any? %>
           <div class="alert alert-error py-2 text-xs" role="alert">
             <%= prediction.errors.full_messages.to_sentence %>
@@ -168,7 +170,8 @@
               </button>
               <%= form.number_field :home_score, in: 0..20, step: 1, required: true,
                                     inputmode: "numeric", class: "score-input",
-                                    data: { stepper_target: "input" },
+                                    data: { stepper_target: "input", penalty_target: "home",
+                                            action: "input->penalty#refresh change->penalty#refresh" },
                                     aria: { label: "#{fixture.home_team.name} goals" } %>
               <button type="button" data-action="stepper#decrement"
                       class="btn btn-circle btn-ghost btn-xs"
@@ -187,7 +190,8 @@
               </button>
               <%= form.number_field :away_score, in: 0..20, step: 1, required: true,
                                     inputmode: "numeric", class: "score-input",
-                                    data: { stepper_target: "input" },
+                                    data: { stepper_target: "input", penalty_target: "away",
+                                            action: "input->penalty#refresh change->penalty#refresh" },
                                     aria: { label: "#{fixture.away_team.name} goals" } %>
               <button type="button" data-action="stepper#decrement"
                       class="btn btn-circle btn-ghost btn-xs"
@@ -202,6 +206,27 @@
             <span class="truncate w-full text-sm font-bold text-charcoal"><%= fixture.away_team.name %></span>
           </div>
         </div>
+
+        <% unless fixture.group? %>
+          <% level = prediction.home_score.present? && prediction.home_score == prediction.away_score %>
+          <div data-penalty-target="picker" class="<%= "hidden" unless level %> flex flex-col items-center gap-2 border-t border-base-200 pt-3">
+            <p class="text-xs font-semibold uppercase tracking-wide text-charcoal/50">Goes to penalties — who advances?</p>
+            <div class="flex items-center gap-2">
+              <label class="btn btn-sm btn-outline gap-2 has-[:checked]:btn-primary">
+                <%= form.radio_button :penalty_winner, "home", checked: prediction.penalty_winner_home?,
+                      disabled: !level, required: level, class: "sr-only",
+                      data: { penalty_target: "option" } %>
+                <%= fixture.home_team.name %>
+              </label>
+              <label class="btn btn-sm btn-outline gap-2 has-[:checked]:btn-primary">
+                <%= form.radio_button :penalty_winner, "away", checked: prediction.penalty_winner_away?,
+                      disabled: !level, required: level, class: "sr-only",
+                      data: { penalty_target: "option" } %>
+                <%= fixture.away_team.name %>
+              </label>
+            </div>
+          </div>
+        <% end %>
 
         <div class="mt-auto flex items-center justify-center gap-2">
           <%= form.submit prediction.persisted? ? "Update prediction" : "Save prediction",
