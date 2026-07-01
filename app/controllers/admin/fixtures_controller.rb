@@ -66,7 +66,7 @@ module Admin
     end
 
     def result_params
-      params.expect(fixture: [ :home_score, :away_score ])
+      params.expect(fixture: [ :home_score, :away_score, :penalty_winner ])
     end
   end
 end
