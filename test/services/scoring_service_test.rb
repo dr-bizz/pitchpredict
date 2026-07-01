@@ -23,6 +23,31 @@ class ScoringServiceTest < ActiveSupport::TestCase
     assert_equal 0, ScoringService.points_for(predicted_home: 1, predicted_away: 1, actual_home: 2, actual_away: 1)
   end
 
+  test "knockout: right advancer and exact score earns 4" do
+    assert_equal 4, ScoringService.points_for(predicted_home: 1, predicted_away: 1,
+      actual_home: 1, actual_away: 1, predicted_pen_winner: "away", actual_pen_winner: "away")
+  end
+
+  test "knockout: exact drawn score but wrong advancer earns 0" do
+    assert_equal 0, ScoringService.points_for(predicted_home: 1, predicted_away: 1,
+      actual_home: 1, actual_away: 1, predicted_pen_winner: "home", actual_pen_winner: "away")
+  end
+
+  test "knockout: decisive prediction with the right advancer earns 2" do
+    assert_equal 2, ScoringService.points_for(predicted_home: 0, predicted_away: 1,
+      actual_home: 1, actual_away: 1, predicted_pen_winner: nil, actual_pen_winner: "away")
+  end
+
+  test "knockout: decisive prediction with the wrong advancer earns 0" do
+    assert_equal 0, ScoringService.points_for(predicted_home: 2, predicted_away: 1,
+      actual_home: 1, actual_away: 1, predicted_pen_winner: nil, actual_pen_winner: "away")
+  end
+
+  test "knockout: right advancer with a different drawn score earns 3" do
+    assert_equal 3, ScoringService.points_for(predicted_home: 2, predicted_away: 2,
+      actual_home: 1, actual_away: 1, predicted_pen_winner: "away", actual_pen_winner: "away")
+  end
+
   test "score_fixture! recomputes and persists points for every prediction of the fixture" do
     fixture = fixtures(:finished_group) # brazil 2-1 france
 
@@ -39,6 +64,21 @@ class ScoringServiceTest < ActiveSupport::TestCase
   test "score_fixture! raises on an unfinished fixture" do
     error = assert_raises(ArgumentError) { ScoringService.score_fixture!(fixtures(:upcoming_group)) }
     assert_match(/not finished/, error.message)
+  end
+
+  test "score_fixture! credits the shootout winner via penalty_winner" do
+    ko = Fixture.create!(home_team: teams(:brazil), away_team: teams(:france),
+      stadium: stadia(:azteca), kickoff_at: 1.day.ago, stage: :sf, status: :finished,
+      home_score: 1, away_score: 1, penalty_winner: :home, match_number: 101)
+    right = Prediction.new(user: users(:one), fixture: ko, home_score: 1, away_score: 1, penalty_winner: :home)
+    right.save!(validate: false)
+    wrong = Prediction.new(user: users(:two), fixture: ko, home_score: 1, away_score: 1, penalty_winner: :away)
+    wrong.save!(validate: false)
+
+    ScoringService.score_fixture!(ko)
+
+    assert_equal 4, right.reload.points_awarded # exact score + right advancer
+    assert_equal 0, wrong.reload.points_awarded # exact score, wrong advancer
   end
 
   test "champion_team_id is nil without a finished final" do
@@ -59,9 +99,9 @@ class ScoringServiceTest < ActiveSupport::TestCase
     assert_equal teams(:brazil).id, ScoringService.champion_team_id
   end
 
-  test "champion_team_id is nil when the final scores are level" do
-    create_finished_final(home_score: 1, away_score: 1)
-    assert_nil ScoringService.champion_team_id
+  test "champion_team_id follows the shootout winner when the final is level" do
+    create_finished_final(home_score: 1, away_score: 1, penalty_winner: :away)
+    assert_equal teams(:france).id, ScoringService.champion_team_id
   end
 
   # NOTE: the bonus is applied at read time by LeaderboardService (it is never
@@ -84,11 +124,11 @@ class ScoringServiceTest < ActiveSupport::TestCase
     LeaderboardService.new.rows.to_h { |row| [ row.user.id, row.total_points ] }
   end
 
-  def create_finished_final(home_score:, away_score:)
+  def create_finished_final(home_score:, away_score:, penalty_winner: nil)
     Fixture.create!(
       home_team: teams(:brazil), away_team: teams(:france), stadium: stadia(:azteca),
       kickoff_at: 1.day.ago, stage: :final, status: :finished,
-      home_score: home_score, away_score: away_score
+      home_score: home_score, away_score: away_score, penalty_winner: penalty_winner
     )
   end
 end
