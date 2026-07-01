@@ -4,16 +4,17 @@
       When a result is scored, ScoreFixtureJob calls broadcast_refresh_to("results"),
       which tells subscribers to re-GET their current URL; Turbo then morphs the
       diff in place. There is NO targeted broadcast_replace_to of this partial.
-    - id="leaderboard-table" is retained ONLY so the leaderboard-highlight
-      Stimulus controller can scope to this element (do not add a targeted
-      broadcast back).
-    - locals: rows (Array<LeaderboardService::Row>) and current_user. The server
+    - The table root id (default "leaderboard-table"; override with the `id:`
+      local) exists so the leaderboard-highlight Stimulus controller can scope to
+      this element. Two boards render on one page, so each MUST get a unique id.
+    - locals: rows (Array<LeaderboardService::Row>), current_user, and optional
+      id (the table root's DOM id, default "leaderboard-table"). The server
       highlights the viewer's row when it can (no-JS fallback); the
       leaderboard-highlight controller re-applies the highlight client-side via
       each row's data-user-id and the layout's <meta name="current-user-id"> tag. %>
 <% viewer = local_assigns[:current_user] %>
 
-<div id="leaderboard-table" data-controller="leaderboard-highlight">
+<div id="<%= local_assigns.fetch(:id, "leaderboard-table") %>" data-controller="leaderboard-highlight">
   <% if rows.empty? %>
     <div class="hero py-16">
       <div class="hero-content text-center">
