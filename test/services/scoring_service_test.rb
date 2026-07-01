@@ -79,6 +79,7 @@ class ScoringServiceTest < ActiveSupport::TestCase
 
     assert_equal 4, right.reload.points_awarded # exact score + right advancer
     assert_equal 0, wrong.reload.points_awarded # exact score, wrong advancer
+    assert_equal "home", right.reload.penalty_winner # scoring preserves the advancer
   end
 
   test "champion_team_id is nil without a finished final" do
