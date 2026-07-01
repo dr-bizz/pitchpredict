@@ -28,16 +28,18 @@
     <td colspan="2">
       <%= form_with model: fixture, url: admin_fixture_path(fixture), method: :patch,
             id: dom_id(fixture, :form), class: "flex flex-wrap items-center justify-end gap-2",
-            data: { controller: "penalty" } do |form| %>
+            data: { controller: ("penalty" unless fixture.group?) } do |form| %>
         <%= form.number_field :home_score, min: 0, step: 1, required: true, inputmode: "numeric",
               placeholder: "0", "aria-label": "#{fixture.home_display} goals",
               class: "input input-bordered input-sm w-16 text-center font-bold tabular-nums",
-              data: { penalty_target: "home", action: "input->penalty#refresh change->penalty#refresh" } %>
+              data: { penalty_target: ("home" unless fixture.group?),
+                      action: ("input->penalty#refresh change->penalty#refresh" unless fixture.group?) } %>
         <span class="text-xs font-semibold uppercase tracking-wide text-base-content/40">vs</span>
         <%= form.number_field :away_score, min: 0, step: 1, required: true, inputmode: "numeric",
               placeholder: "0", "aria-label": "#{fixture.away_display} goals",
               class: "input input-bordered input-sm w-16 text-center font-bold tabular-nums",
-              data: { penalty_target: "away", action: "input->penalty#refresh change->penalty#refresh" } %>
+              data: { penalty_target: ("away" unless fixture.group?),
+                      action: ("input->penalty#refresh change->penalty#refresh" unless fixture.group?) } %>
         <% unless fixture.group? %>
           <% level = fixture.home_score.present? && fixture.home_score == fixture.away_score %>
           <span data-penalty-target="picker" class="<%= "hidden" unless level %> flex items-center gap-1.5">

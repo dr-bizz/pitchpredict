@@ -154,7 +154,7 @@
       <%# --- Open: editable steppers (chevron up above / down below each input) --- %>
       <%= form_with model: prediction, url: fixture_prediction_path(fixture),
             class: "mt-auto flex flex-1 flex-col gap-4",
-            data: { controller: "penalty" } do |form| %>
+            data: { controller: ("penalty" unless fixture.group?) } do |form| %>
         <% if prediction.errors.any? %>
           <div class="alert alert-error py-2 text-xs" role="alert">
             <%= prediction.errors.full_messages.to_sentence %>
@@ -176,8 +176,9 @@
               </button>
               <%= form.number_field :home_score, in: 0..20, step: 1, required: true,
                                     inputmode: "numeric", class: "score-input",
-                                    data: { stepper_target: "input", penalty_target: "home",
-                                            action: "input->penalty#refresh change->penalty#refresh" },
+                                    data: { stepper_target: "input",
+                                            penalty_target: ("home" unless fixture.group?),
+                                            action: ("input->penalty#refresh change->penalty#refresh" unless fixture.group?) },
                                     aria: { label: "#{fixture.home_team.name} goals" } %>
               <button type="button" data-action="stepper#decrement"
                       class="btn btn-circle btn-ghost btn-xs"
@@ -196,8 +197,9 @@
               </button>
               <%= form.number_field :away_score, in: 0..20, step: 1, required: true,
                                     inputmode: "numeric", class: "score-input",
-                                    data: { stepper_target: "input", penalty_target: "away",
-                                            action: "input->penalty#refresh change->penalty#refresh" },
+                                    data: { stepper_target: "input",
+                                            penalty_target: ("away" unless fixture.group?),
+                                            action: ("input->penalty#refresh change->penalty#refresh" unless fixture.group?) },
                                     aria: { label: "#{fixture.away_team.name} goals" } %>
               <button type="button" data-action="stepper#decrement"
                       class="btn btn-circle btn-ghost btn-xs"

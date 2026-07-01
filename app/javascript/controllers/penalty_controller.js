@@ -12,6 +12,8 @@ export default class extends Controller {
   }
 
   refresh() {
+    if (!this.hasPickerTarget || !this.hasHomeTarget || !this.hasAwayTarget) return
+
     const home = this.homeTarget.value
     const away = this.awayTarget.value
     const level = home !== "" && away !== "" && Number(home) === Number(away)

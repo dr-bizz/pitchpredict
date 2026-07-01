@@ -33,7 +33,7 @@
       </p>
 
       <%= form_with model: @fixture, url: admin_fixture_path(@fixture), method: :patch, class: "mt-6",
-            data: { controller: "penalty" } do |form| %>
+            data: { controller: ("penalty" unless @fixture.group?) } do |form| %>
         <% if @fixture.errors.any? %>
           <div class="alert alert-error mb-4" role="alert">
             <div>
@@ -52,13 +52,15 @@
             <%= form.label :home_score, @fixture.home_team ? "#{@fixture.home_team.name} (#{@fixture.home_team.code})" : @fixture.home_display, class: "label label-text font-semibold" %>
             <%= form.number_field :home_score, min: 0, step: 1, required: true, inputmode: "numeric",
                   placeholder: "0", class: "input input-bordered w-full text-center text-2xl font-bold tabular-nums",
-                  data: { penalty_target: "home", action: "input->penalty#refresh change->penalty#refresh" } %>
+                  data: { penalty_target: ("home" unless @fixture.group?),
+                          action: ("input->penalty#refresh change->penalty#refresh" unless @fixture.group?) } %>
           </div>
           <div class="form-control">
             <%= form.label :away_score, @fixture.away_team ? "#{@fixture.away_team.name} (#{@fixture.away_team.code})" : @fixture.away_display, class: "label label-text font-semibold" %>
             <%= form.number_field :away_score, min: 0, step: 1, required: true, inputmode: "numeric",
                   placeholder: "0", class: "input input-bordered w-full text-center text-2xl font-bold tabular-nums",
-                  data: { penalty_target: "away", action: "input->penalty#refresh change->penalty#refresh" } %>
+                  data: { penalty_target: ("away" unless @fixture.group?),
+                          action: ("input->penalty#refresh change->penalty#refresh" unless @fixture.group?) } %>
           </div>
         </div>
 

@@ -181,6 +181,15 @@ class FixturesControllerTest < ActionDispatch::IntegrationTest
     assert_match "Spain win on penalties", response.body
   end
 
+  test "a group prediction card does not attach the penalty controller" do
+    sign_in_as users(:one)
+    get predictions_path(status: "upcoming")
+
+    assert_response :success
+    assert_select "turbo-frame#prediction_fixture_#{fixtures(:upcoming_group).id}"
+    refute_match 'data-controller="penalty"', response.body
+  end
+
   test "knockout fixture with unknown teams renders as a non-predictable TBD card" do
     sign_in_as users(:one)
     ko = Fixture.create!(stadium: stadia(:metlife), kickoff_at: 20.days.from_now,

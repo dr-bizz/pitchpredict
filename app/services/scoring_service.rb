@@ -5,7 +5,9 @@
 #   4 — exact scoreline
 #   3 — correct goal difference, but not the exact score (includes draws
 #       predicted as draws with the wrong score, since 0 == 0)
-#   2 — correct outcome (home win / draw / away win) only
+#   2 — correct outcome (home win / draw / away win) only. For knockout
+#       matches the "outcome" is which team advances (the higher score, or
+#       the shootout winner on a level score) — a wrong advancer scores 0.
 #   0 — everything else
 class ScoringService
   EXACT_POINTS = 4
