@@ -57,6 +57,21 @@ class UserPredictionsControllerTest < ActionDispatch::IntegrationTest
     assert_match "0–3", response.body       # the viewer's own pick
   end
 
+  test "a viewed prediction shows the picked penalty advancer" do
+    ko = Fixture.create!(stadium: stadia(:metlife), kickoff_at: 2.days.ago, stage: :r16, match_number: 89,
+                         home_team: teams(:spain), away_team: teams(:canada),
+                         status: :finished, home_score: 1, away_score: 1, penalty_winner: :away)
+    pick = @target.predictions.build(fixture: ko, home_score: 1, away_score: 1, penalty_winner: :away)
+    pick.save!(validate: false)
+
+    sign_in_as @viewer
+    get user_predictions_path(@target, stage: "r16")
+
+    assert_response :success
+    assert_match "Canada on pens", response.body     # fixture result: Canada won on penalties
+    assert_match "(Canada pens)", response.body      # the target's pick called Canada
+  end
+
   test "defaults to the Past tab and marks it current" do
     sign_in_as @viewer
     get user_predictions_path(@target)

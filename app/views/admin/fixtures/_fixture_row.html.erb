@@ -27,14 +27,37 @@
         valid HTML. Inputs prefill from the saved score for a finished match. %>
     <td colspan="2">
       <%= form_with model: fixture, url: admin_fixture_path(fixture), method: :patch,
-            id: dom_id(fixture, :form), class: "flex flex-wrap items-center justify-end gap-2" do |form| %>
+            id: dom_id(fixture, :form), class: "flex flex-wrap items-center justify-end gap-2",
+            data: { controller: ("penalty" unless fixture.group?) } do |form| %>
         <%= form.number_field :home_score, min: 0, step: 1, required: true, inputmode: "numeric",
               placeholder: "0", "aria-label": "#{fixture.home_display} goals",
-              class: "input input-bordered input-sm w-16 text-center font-bold tabular-nums" %>
+              class: "input input-bordered input-sm w-16 text-center font-bold tabular-nums",
+              data: { penalty_target: ("home" unless fixture.group?),
+                      action: ("input->penalty#refresh change->penalty#refresh" unless fixture.group?) } %>
         <span class="text-xs font-semibold uppercase tracking-wide text-base-content/40">vs</span>
         <%= form.number_field :away_score, min: 0, step: 1, required: true, inputmode: "numeric",
               placeholder: "0", "aria-label": "#{fixture.away_display} goals",
-              class: "input input-bordered input-sm w-16 text-center font-bold tabular-nums" %>
+              class: "input input-bordered input-sm w-16 text-center font-bold tabular-nums",
+              data: { penalty_target: ("away" unless fixture.group?),
+                      action: ("input->penalty#refresh change->penalty#refresh" unless fixture.group?) } %>
+        <% unless fixture.group? %>
+          <% level = fixture.home_score.present? && fixture.home_score == fixture.away_score %>
+          <span data-penalty-target="picker" class="<%= "hidden" unless level %> flex items-center gap-1.5">
+            <span class="text-xs font-semibold uppercase tracking-wide text-base-content/40">Pens:</span>
+            <label class="btn btn-xs btn-outline has-[:checked]:btn-primary">
+              <%= form.radio_button :penalty_winner, "home", checked: fixture.penalty_winner_home?,
+                    disabled: !level, required: level, class: "sr-only",
+                    aria: { label: fixture.home_team.name }, data: { penalty_target: "option" } %>
+              <%= fixture.home_team.code %>
+            </label>
+            <label class="btn btn-xs btn-outline has-[:checked]:btn-primary">
+              <%= form.radio_button :penalty_winner, "away", checked: fixture.penalty_winner_away?,
+                    disabled: !level, required: level, class: "sr-only",
+                    aria: { label: fixture.away_team.name }, data: { penalty_target: "option" } %>
+              <%= fixture.away_team.code %>
+            </label>
+          </span>
+        <% end %>
         <%= form.submit "Save", data: { turbo_submits_with: "Saving…" }, class: "btn btn-primary btn-sm" %>
       <% end %>
     </td>

@@ -9,6 +9,7 @@ class Fixture < ApplicationRecord
   # Use by_stage(:group) instead; instance predicates (group?, final?, ...) still work.
   enum :stage, { group: 0, r32: 1, r16: 2, qf: 3, sf: 4, third_place: 5, final: 6 }, scopes: false
   enum :status, { scheduled: 0, live: 1, finished: 2 }
+  enum :penalty_winner, { home: 0, away: 1 }, prefix: true, scopes: false
 
   validates :kickoff_at, presence: true
   validates :home_score, :away_score,
@@ -19,6 +20,7 @@ class Fixture < ApplicationRecord
   validate :group_fixtures_have_teams
   validate :teams_present_together
   validate :finished_requires_teams
+  validate :penalty_winner_consistency
 
   scope :upcoming, -> { where(kickoff_at: Time.current..).order(:kickoff_at) }
   scope :past, -> { where(kickoff_at: ...Time.current).order(kickoff_at: :desc) }
@@ -45,6 +47,9 @@ class Fixture < ApplicationRecord
     home_team_id.present? && away_team_id.present?
   end
 
+  # Any non-group match — the stages that can go to a penalty shootout.
+  def knockout? = !group?
+
   def open_for_predictions?
     teams_known? && !locked?
   end
@@ -53,6 +58,13 @@ class Fixture < ApplicationRecord
   def away_display = away_team&.name || away_slot_label || "TBD"
   def home_flag = home_team&.flag_emoji || "🏳️"
   def away_flag = away_team&.flag_emoji || "🏳️"
+
+  # The team that won the shootout, or nil when the match wasn't decided on pens.
+  def penalty_winner_team
+    return nil if penalty_winner.blank?
+
+    penalty_winner_home? ? home_team : away_team
+  end
 
   private
 
@@ -82,5 +94,19 @@ class Fixture < ApplicationRecord
     return unless finished?
 
     errors.add(:base, "Cannot finish a match before both teams are known") unless teams_known?
+  end
+
+  # penalty_winner is only meaningful for a knockout decided on a level score:
+  # forbidden on group matches and decisive results, required once a knockout is
+  # finished level (a knockout can't end level without someone going through).
+  def penalty_winner_consistency
+    level = home_score.present? && away_score.present? && home_score == away_score
+
+    if penalty_winner.present?
+      errors.add(:penalty_winner, "only applies to knockout matches") unless knockout?
+      errors.add(:penalty_winner, "only applies when the score is level") unless level
+    elsif finished? && knockout? && teams_known? && level
+      errors.add(:base, "Enter who won the penalty shootout")
+    end
   end
 end

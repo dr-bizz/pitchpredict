@@ -28,6 +28,9 @@
           <div class="text-3xl font-bold tabular-nums text-pitch">
             <%= fixture.home_score %><span class="px-1 text-charcoal/30">–</span><%= fixture.away_score %>
           </div>
+          <% if fixture.penalty_winner_team %>
+            <p class="mt-0.5 text-[11px] font-medium text-charcoal/50"><%= fixture.penalty_winner_team.name %> on pens</p>
+          <% end %>
         <% else %>
           <div class="text-xs font-semibold uppercase tracking-wide text-charcoal/40">vs</div>
         <% end %>

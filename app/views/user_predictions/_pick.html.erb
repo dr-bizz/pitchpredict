@@ -5,6 +5,9 @@
   <% if prediction %>
     <p class="mt-1 flex flex-wrap items-center gap-1.5">
       <span class="font-bold tabular-nums text-charcoal/80"><%= prediction.home_score %>–<%= prediction.away_score %></span>
+      <% if prediction.penalty_winner_team %>
+        <span class="text-[11px] text-charcoal/50">(<%= prediction.penalty_winner_team.name %> pens)</span>
+      <% end %>
       <% if finished && prediction.points_awarded.present? %>
         <span class="badge badge-sm <%= prediction_outcome_badge_class(prediction.points_awarded) %>">
           +<%= prediction.points_awarded %><% if (label = prediction_outcome_label(prediction.points_awarded)) %> · <%= label %><% end %>

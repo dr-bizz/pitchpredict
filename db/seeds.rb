@@ -40,6 +40,8 @@
 # each. Nothing is saved with `validate: false`.
 
 require "securerandom"
+require "active_support/testing/time_helpers"
+include ActiveSupport::Testing::TimeHelpers
 
 RNG = Random.new(2026) # deterministic results on every replant
 NOW = Time.current
@@ -132,7 +134,8 @@ ActiveRecord::Base.transaction do
 
   # ---- Build the fixture schedule as plain specs first -----------------------
   # Each spec: { home:, away:, stadium:, kickoff:, stage: }. We adjust the actual
-  # kickoff per profile (demo keeps real dates; production shifts the whole set).
+  # kickoff per profile below (demo anchors the calendar around now; production
+  # mirrors the real dates unless SCHEDULE_LEAD_DAYS shifts the whole set).
   specs = []
   team_by_code = Team.all.index_by(&:code)
   kickoff_hours = [ 16, 19, 22 ] # ET — used only by the illustrative knockout bracket
@@ -226,14 +229,28 @@ ActiveRecord::Base.transaction do
   specs << ko.call(:third_place, 0, stadiums[10], Time.zone.local(2026, 7, 18, 19))
   specs << ko.call(:final, 0, stadiums[5], Time.zone.local(2026, 7, 19, 19))
 
-  # By default the schedule mirrors the REAL tournament calendar (offset 0).
-  # Optionally set SCHEDULE_LEAD_DAYS to shift the whole schedule forward so the
-  # earliest match kicks off that many days from now — a "fresh game" where every
-  # fixture is open to predict regardless of the real date. Demo always keeps the
-  # real dates (and backdates/scores the past matches below).
+  # How far to shift the whole schedule from its real 2026 calendar dates:
+  #
+  #   * DEMO — anchor the group stage around NOW so ~half its matches have already
+  #     been played (populating the leaderboard) while the rest are still upcoming
+  #     and open to predict. This keeps the showcase evergreen: the real group
+  #     stage (11–27 Jun 2026) is otherwise entirely in the past, leaving nothing
+  #     to predict once that window has elapsed.
+  #   * SCHEDULE_LEAD_DAYS set (production) — shift so the earliest match kicks off
+  #     that many days from now: a "fresh game" where every fixture is open.
+  #   * otherwise (production default) — mirror the real tournament calendar.
   lead_days = ENV["SCHEDULE_LEAD_DAYS"].presence&.to_i
   earliest = specs.map { |s| s[:kickoff] }.min
-  offset = (SEED_DEMO || lead_days.nil?) ? 0.seconds : ((NOW + lead_days.days) - earliest)
+  offset =
+    if SEED_DEMO
+      group_kickoffs = specs.select { |s| s[:stage] == :group }.map { |s| s[:kickoff] }
+      group_midpoint = group_kickoffs.min + (group_kickoffs.max - group_kickoffs.min) / 2
+      NOW - group_midpoint
+    elsif lead_days
+      (NOW + lead_days.days) - earliest
+    else
+      0.seconds
+    end
 
   puts "== Fixtures (#{specs.size}) =="
   real_kickoffs = {}
@@ -278,18 +295,26 @@ ActiveRecord::Base.transaction do
     # ---- Predictions + champion picks (while every fixture is still open) ----
     puts "== Predictions and champion picks =="
     contenders = CONTENDER_CODES.map { |code| Team.find_by!(code:) }
-    players.each do |player|
-      coverage = RNG.rand(0.60..1.0) # each player predicts 60–100% of group games
-      group_fixtures.sample((group_fixtures.size * coverage).round, random: RNG).each do |fixture|
-        player.predictions.create!(fixture:, home_score: random_goals, away_score: random_goals)
+    # Champion picks were made before ChampionPick::PICK_DEADLINE. When seeding
+    # after that date (e.g. mid-tournament), travel back so the deadline lock
+    # accepts them; before it, this is a no-op (min pins to NOW).
+    travel_to([ NOW, ChampionPick::PICK_DEADLINE - 1.day ].min) do
+      players.each do |player|
+        coverage = RNG.rand(0.60..1.0) # each player predicts 60–100% of group games
+        group_fixtures.sample((group_fixtures.size * coverage).round, random: RNG).each do |fixture|
+          player.predictions.create!(fixture:, home_score: random_goals, away_score: random_goals)
+        end
+        player.create_champion_pick!(team: contenders.sample(random: RNG))
       end
-      player.create_champion_pick!(team: contenders.sample(random: RNG))
     end
 
     # ---- Backdate past fixtures, record results, score -----------------------
     puts "== Results for fixtures already played =="
     real_kickoffs.each do |fixture, kickoff|
-      next unless kickoff <= NOW
+      # Only finish matches that have already kicked off AND have both teams — the
+      # illustrative knockout bracket uses placeholders, so its past-dated slots
+      # (when seeding mid-tournament) stay unplayed until qualifiers are known.
+      next unless kickoff <= NOW && fixture.teams_known?
 
       fixture.update!(kickoff_at: kickoff, status: :finished,
                       home_score: random_goals, away_score: random_goals)

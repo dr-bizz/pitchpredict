@@ -32,7 +32,8 @@
         <%= @fixture.stadium.name %>, <%= @fixture.stadium.city %>
       </p>
 
-      <%= form_with model: @fixture, url: admin_fixture_path(@fixture), method: :patch, class: "mt-6" do |form| %>
+      <%= form_with model: @fixture, url: admin_fixture_path(@fixture), method: :patch, class: "mt-6",
+            data: { controller: ("penalty" unless @fixture.group?) } do |form| %>
         <% if @fixture.errors.any? %>
           <div class="alert alert-error mb-4" role="alert">
             <div>
@@ -50,14 +51,37 @@
           <div class="form-control">
             <%= form.label :home_score, @fixture.home_team ? "#{@fixture.home_team.name} (#{@fixture.home_team.code})" : @fixture.home_display, class: "label label-text font-semibold" %>
             <%= form.number_field :home_score, min: 0, step: 1, required: true, inputmode: "numeric",
-                  placeholder: "0", class: "input input-bordered w-full text-center text-2xl font-bold tabular-nums" %>
+                  placeholder: "0", class: "input input-bordered w-full text-center text-2xl font-bold tabular-nums",
+                  data: { penalty_target: ("home" unless @fixture.group?),
+                          action: ("input->penalty#refresh change->penalty#refresh" unless @fixture.group?) } %>
           </div>
           <div class="form-control">
             <%= form.label :away_score, @fixture.away_team ? "#{@fixture.away_team.name} (#{@fixture.away_team.code})" : @fixture.away_display, class: "label label-text font-semibold" %>
             <%= form.number_field :away_score, min: 0, step: 1, required: true, inputmode: "numeric",
-                  placeholder: "0", class: "input input-bordered w-full text-center text-2xl font-bold tabular-nums" %>
+                  placeholder: "0", class: "input input-bordered w-full text-center text-2xl font-bold tabular-nums",
+                  data: { penalty_target: ("away" unless @fixture.group?),
+                          action: ("input->penalty#refresh change->penalty#refresh" unless @fixture.group?) } %>
           </div>
         </div>
+
+        <% unless @fixture.group? %>
+          <% level = @fixture.home_score.present? && @fixture.home_score == @fixture.away_score %>
+          <div data-penalty-target="picker" class="<%= "hidden" unless level %> mt-4">
+            <span class="label label-text font-semibold">Won the penalty shootout</span>
+            <div class="mt-1 flex gap-2">
+              <label class="btn btn-outline has-[:checked]:border-primary has-[:checked]:bg-primary has-[:checked]:text-primary-content">
+                <%= form.radio_button :penalty_winner, "home", checked: @fixture.penalty_winner_home?,
+                      disabled: !level, required: level, class: "sr-only", data: { penalty_target: "option" } %>
+                <%= @fixture.home_display %>
+              </label>
+              <label class="btn btn-outline has-[:checked]:border-primary has-[:checked]:bg-primary has-[:checked]:text-primary-content">
+                <%= form.radio_button :penalty_winner, "away", checked: @fixture.penalty_winner_away?,
+                      disabled: !level, required: level, class: "sr-only", data: { penalty_target: "option" } %>
+                <%= @fixture.away_display %>
+              </label>
+            </div>
+          </div>
+        <% end %>
 
         <div class="alert alert-warning mt-4">
           <span>

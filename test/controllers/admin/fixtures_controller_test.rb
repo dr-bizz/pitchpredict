@@ -168,5 +168,33 @@ module Admin
       assert tbd.scheduled?
       assert_nil tbd.home_score
     end
+
+    test "records the shootout winner for a level knockout result" do
+      sign_in_as @admin
+      ko = Fixture.create!(stadium: stadia(:metlife), kickoff_at: 1.hour.ago, stage: :sf,
+                            match_number: 101, home_team: teams(:spain), away_team: teams(:canada))
+
+      patch admin_fixture_path(ko), params: {
+        fixture: { home_score: 1, away_score: 1, penalty_winner: "home" }
+      }, as: :turbo_stream
+
+      assert_response :success
+      ko.reload
+      assert ko.finished?
+      assert_equal "home", ko.penalty_winner
+    end
+
+    test "rejects a level knockout result with no shootout winner" do
+      sign_in_as @admin
+      ko = Fixture.create!(stadium: stadia(:metlife), kickoff_at: 1.hour.ago, stage: :sf,
+                            match_number: 101, home_team: teams(:spain), away_team: teams(:canada))
+
+      patch admin_fixture_path(ko), params: {
+        fixture: { home_score: 1, away_score: 1 }
+      }, as: :turbo_stream
+
+      assert_response :unprocessable_entity
+      assert_not ko.reload.finished?
+    end
   end
 end
