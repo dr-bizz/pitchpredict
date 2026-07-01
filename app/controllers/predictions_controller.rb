@@ -18,7 +18,7 @@ class PredictionsController < ApplicationController
   end
 
   def prediction_params
-    params.expect(prediction: [ :home_score, :away_score ])
+    params.expect(prediction: [ :home_score, :away_score, :penalty_winner ])
   end
 
   # NOTE: create and update share an upsert. The singular nested route carries

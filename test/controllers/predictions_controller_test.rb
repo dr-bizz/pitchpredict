@@ -102,4 +102,29 @@ class PredictionsControllerTest < ActionDispatch::IntegrationTest
 
     assert_response :not_found
   end
+
+  test "persists the advancer on a knockout draw prediction" do
+    sign_in_as users(:one)
+    ko = Fixture.create!(stadium: stadia(:metlife), kickoff_at: 7.days.from_now, stage: :r16,
+                         match_number: 89, home_team: teams(:spain), away_team: teams(:canada))
+
+    post fixture_prediction_path(ko),
+         params: { prediction: { home_score: 1, away_score: 1, penalty_winner: "away" } }
+
+    assert_response :success
+    prediction = users(:one).predictions.find_by!(fixture: ko)
+    assert_equal "away", prediction.penalty_winner
+  end
+
+  test "rejects a knockout draw prediction with no advancer" do
+    sign_in_as users(:one)
+    ko = Fixture.create!(stadium: stadia(:metlife), kickoff_at: 7.days.from_now, stage: :r16,
+                         match_number: 89, home_team: teams(:spain), away_team: teams(:canada))
+
+    assert_no_difference "Prediction.count" do
+      post fixture_prediction_path(ko),
+           params: { prediction: { home_score: 1, away_score: 1 } }
+    end
+    assert_response :unprocessable_entity
+  end
 end
