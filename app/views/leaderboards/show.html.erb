@@ -4,9 +4,10 @@
     after scoring, so this page re-GETs itself and morphs the new standings. %>
 <%= turbo_stream_from "results" %>
 
-<% top3 = @rows.first(3) %>
-
-<div class="space-y-8">
+<%# Two boards on one page. The leaderboard-tabs controller toggles the panels
+    and remembers the active tab in the URL hash so the choice survives the
+    morph refresh (the morph resets each panel's `hidden` to its server default). %>
+<div class="space-y-8" data-controller="leaderboard-tabs">
   <header class="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
     <div>
       <h1 class="page-title text-3xl font-extrabold uppercase tracking-tight sm:text-4xl">Leaderboard</h1>
@@ -20,25 +21,26 @@
     </span>
   </header>
 
-  <% if top3.size == 3 %>
-    <%# Podium — gold, silver, bronze left-to-right, equal height. %>
-    <section aria-label="Top three players" class="grid grid-cols-3 gap-3 sm:gap-4">
-      <% [ [top3[0], "podium-gold", "🥇"], [top3[1], "podium-silver", "🥈"], [top3[2], "podium-bronze", "🥉"] ].each do |player, klass, medal| %>
-        <div class="<%= klass %> p-4 text-center sm:p-5">
-          <div class="text-2xl sm:text-3xl" aria-hidden="true"><%= medal %></div>
-          <p class="mt-2 truncate text-sm font-bold sm:text-base" title="<%= player.user.name %>"><%= player_predictions_link(player.user, viewer: Current.user, name: player.user.name.split.first) %></p>
-          <p class="mt-1 leading-none">
-            <span class="text-2xl font-extrabold tabular-nums sm:text-3xl"><%= player.total_points %></span>
-            <span class="block text-xs font-medium opacity-80">pts</span>
-          </p>
-        </div>
-      <% end %>
-    </section>
-  <% end %>
+  <div role="tablist" class="tabs tabs-boxed self-start">
+    <button type="button" role="tab"
+            class="tab tab-active"
+            data-leaderboard-tabs-target="tab"
+            data-board="overall"
+            data-action="leaderboard-tabs#select"
+            aria-selected="true">Overall</button>
+    <button type="button" role="tab"
+            class="tab"
+            data-leaderboard-tabs-target="tab"
+            data-board="r16"
+            data-action="leaderboard-tabs#select"
+            aria-selected="false">From R16</button>
+  </div>
 
-  <section class="card bg-base-100 shadow-card rounded-2xl overflow-hidden">
-    <div class="card-body p-0">
-      <%= render "table", rows: @rows, current_user: Current.user %>
-    </div>
-  </section>
+  <div data-leaderboard-tabs-target="panel" data-board="overall">
+    <%= render "board", rows: @overall_rows, current_user: Current.user, table_id: "leaderboard-table" %>
+  </div>
+
+  <div data-leaderboard-tabs-target="panel" data-board="r16" hidden>
+    <%= render "board", rows: @r16_rows, current_user: Current.user, table_id: "leaderboard-table-r16" %>
+  </div>
 </div>
