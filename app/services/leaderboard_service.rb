@@ -1,31 +1,52 @@
-# Builds the ranked leaderboard in two queries total (one grouped aggregate
-# over users+predictions, one pluck for champion picks) — no N+1.
+# Builds a ranked leaderboard in two queries (one grouped aggregate over
+# users+predictions, one pluck for champion picks) — no N+1.
+#
+# Two board variants share this code:
+#   :overall — the whole tournament, with the champion bonus.
+#   :r16     — Round-of-16-onward fixtures only (stage >= r16, so group AND the
+#              Round of 32 are excluded), with NO champion bonus.
 class LeaderboardService
   Row = Data.define(:rank, :user, :total_points, :predictions_count, :exact_count, :diff_count, :tendency_count)
 
+  # min_stage: nil means "all stages". champion_bonus toggles the final-winner
+  # +10. Referencing Fixture.stages[:r16] keeps the floor in sync with the enum.
+  VARIANTS = {
+    overall: { min_stage: nil, champion_bonus: true },
+    r16: { min_stage: Fixture.stages[:r16], champion_bonus: false }
+  }.freeze
+
   CACHE_KEY = "leaderboard/rows"
   # NOTE: short TTL is only a safety net — Prediction/User after_commit hooks
-  # and ScoreFixtureJob expire the key eagerly on every relevant change.
+  # and ScoreFixtureJob expire the keys eagerly on every relevant change.
   CACHE_TTL = 1.minute
 
   # Cached entry point used by the leaderboard page and the broadcast job.
-  # Backed by Solid Cache, so the ranked standings are computed once per
-  # change (or per minute) instead of on every page view.
-  def self.fetch_rows
-    Rails.cache.fetch(CACHE_KEY, expires_in: CACHE_TTL) { new.rows }
+  # Backed by Solid Cache, so each board is computed once per change (or per
+  # minute) instead of on every page view. Keys are per-variant.
+  def self.fetch_rows(variant: :overall)
+    config = VARIANTS.fetch(variant)
+    Rails.cache.fetch("#{CACHE_KEY}/#{variant}", expires_in: CACHE_TTL) { new(**config).rows }
   end
 
+  # Expire every variant. A single prediction/result change can affect either
+  # board, and recomputing an unaffected board just reproduces identical rows,
+  # so we clear all keys rather than reason about which board changed.
   def self.expire_rows
-    Rails.cache.delete(CACHE_KEY)
+    VARIANTS.each_key { |variant| Rails.cache.delete("#{CACHE_KEY}/#{variant}") }
+  end
+
+  def initialize(min_stage: nil, champion_bonus: true)
+    @min_stage = min_stage
+    @champion_bonus = champion_bonus
   end
 
   # Returns an array of Row, ordered by total points (champion bonus included
-  # once the final is finished) with standard competition ranking ("1224") on
-  # equal points. NOTE: assumption — ties share a rank based on total points
-  # only; the secondary ordering (exact count desc, then name asc) is for a
-  # stable display order and does not affect rank.
+  # once the final is finished, when this variant awards it) with standard
+  # competition ranking ("1224") on equal points. NOTE: assumption — ties share
+  # a rank based on total points only; the secondary ordering (exact count desc,
+  # then name asc) is for a stable display order and does not affect rank.
   def rows
-    bonus_user_ids = champion_bonus_user_ids
+    bonus_user_ids = @champion_bonus ? champion_bonus_user_ids : Set.new
 
     ranked = aggregated_users.map do |user|
       bonus = bonus_user_ids.include?(user.id) ? ScoringService::CHAMPION_BONUS : 0
@@ -54,19 +75,38 @@ class LeaderboardService
 
   private
 
+  # The overall board keeps its lean predictions-only join (the hot path). The
+  # r16 board also joins the fixture so aggregates can be gated by stage.
   def aggregated_users
-    User.left_joins(:predictions).group("users.id").select(
+    relation = @min_stage ? User.left_joins(predictions: :fixture) : User.left_joins(:predictions)
+    relation.group("users.id").select(
       "users.*",
-      "COALESCE(SUM(predictions.points_awarded), 0) AS prediction_points",
-      "COUNT(predictions.id) AS predictions_count",
+      sum_where("predictions.points_awarded", as: "prediction_points"),
+      count_where("predictions.id IS NOT NULL", as: "predictions_count"),
       count_where("predictions.points_awarded = #{ScoringService::EXACT_POINTS}", as: "exact_count"),
       count_where("predictions.points_awarded = #{ScoringService::DIFFERENCE_POINTS}", as: "diff_count"),
       count_where("predictions.points_awarded = #{ScoringService::TENDENCY_POINTS}", as: "tendency_count")
     )
   end
 
+  # SQL predicate limiting aggregates to in-scope fixtures, or nil for "all".
+  # Gating lives inside the SUM/COUNT CASE expressions (below), never in a WHERE,
+  # so a player with no in-scope predictions still appears with a correct 0
+  # rather than being dropped by the join.
+  def stage_gate
+    "fixtures.stage >= #{@min_stage.to_i}" if @min_stage
+  end
+
+  # SUM(expr) over in-scope predictions; 0 when there are none.
+  def sum_where(expr, as:)
+    inner = stage_gate ? "CASE WHEN #{stage_gate} THEN #{expr} END" : expr
+    "COALESCE(SUM(#{inner}), 0) AS #{as}"
+  end
+
+  # Count of in-scope predictions matching condition; 0 when there are none.
   def count_where(condition, as:)
-    "COALESCE(SUM(CASE WHEN #{condition} THEN 1 ELSE 0 END), 0) AS #{as}"
+    full = [ stage_gate, condition ].compact.join(" AND ")
+    "COALESCE(SUM(CASE WHEN #{full} THEN 1 ELSE 0 END), 0) AS #{as}"
   end
 
   # See ScoringService.champion_team_id for the bonus representation decision.

@@ -14,22 +14,31 @@ class LeaderboardsControllerTest < ActionDispatch::IntegrationTest
     assert_select "turbo-cable-stream-source[channel=?]", "Turbo::StreamsChannel"
     assert_select "#leaderboard-table"
     assert_select "#leaderboard-table tbody tr", count: User.count
-    # users(:two) has the scored prediction (5 pts fixture data) so appears with points
-    assert_select "tr[data-current-user='true']", count: 1
-    assert_select "tr[data-current-user='true']", text: /You/
+    # Own-row assertions are scoped to the Overall table: the viewer's row now
+    # appears on both boards, so an unscoped selector would match twice.
+    assert_select "#leaderboard-table tr[data-current-user='true']", count: 1
+    assert_select "#leaderboard-table tr[data-current-user='true']", text: /You/
     # Contract with leaderboard_highlight_controller.js: the layout exposes the
     # viewer's id and every row is addressable by user id.
     assert_select "meta[name='current-user-id'][content=?]", users(:two).id.to_s
     assert_select "#leaderboard-table[data-controller='leaderboard-highlight']"
-    assert_select "tr[data-user-id=?]", users(:two).id.to_s, count: 1
+    assert_select "#leaderboard-table tr[data-user-id=?]", users(:two).id.to_s, count: 1
+
+    # Second board (From R16) renders alongside the overall board, with tabs.
+    assert_select "[data-controller='leaderboard-tabs']"
+    assert_select "[data-leaderboard-tabs-target='tab'][data-board='overall']", text: "Overall"
+    assert_select "[data-leaderboard-tabs-target='tab'][data-board='r16']", text: "From R16"
+    assert_select "[data-leaderboard-tabs-target='panel'][data-board='r16'][hidden]"
+    assert_select "#leaderboard-table-r16 tbody tr", count: User.count
+    assert_select "#leaderboard-table-r16[data-controller='leaderboard-highlight']"
   end
 
   test "ranks users by total points with medal flair for the leader" do
     sign_in_as users(:one)
     get leaderboard_path
 
-    assert_select "tbody tr:first-child", text: /🥇/
-    assert_select "tr[data-current-user='true']", count: 1
+    assert_select "#leaderboard-table tbody tr:first-child", text: /🥇/
+    assert_select "#leaderboard-table tr[data-current-user='true']", count: 1
   end
 
   test "table partial tolerates a nil current_user (broadcast case)" do

@@ -1,0 +1,31 @@
+<%# One leaderboard board: top-3 podium (when there are 3+ players) + the
+    standings table. Rendered once per tab by leaderboards/show.html.erb.
+    locals:
+      rows          Array<LeaderboardService::Row> — this board's ranked rows
+      current_user  the viewer (for own-row highlight), or nil in a broadcast
+      table_id      unique DOM id for the table root (two boards share one page) %>
+<% top3 = rows.first(3) %>
+
+<div class="space-y-8">
+  <% if top3.size == 3 %>
+    <%# Podium — gold, silver, bronze left-to-right, equal height. %>
+    <section aria-label="Top three players" class="grid grid-cols-3 gap-3 sm:gap-4">
+      <% [ [ top3[0], "podium-gold", "🥇" ], [ top3[1], "podium-silver", "🥈" ], [ top3[2], "podium-bronze", "🥉" ] ].each do |player, klass, medal| %>
+        <div class="<%= klass %> p-4 text-center sm:p-5">
+          <div class="text-2xl sm:text-3xl" aria-hidden="true"><%= medal %></div>
+          <p class="mt-2 truncate text-sm font-bold sm:text-base" title="<%= player.user.name %>"><%= player_predictions_link(player.user, viewer: current_user, name: player.user.name.split.first) %></p>
+          <p class="mt-1 leading-none">
+            <span class="text-2xl font-extrabold tabular-nums sm:text-3xl"><%= player.total_points %></span>
+            <span class="block text-xs font-medium opacity-80">pts</span>
+          </p>
+        </div>
+      <% end %>
+    </section>
+  <% end %>
+
+  <section class="card bg-base-100 shadow-card rounded-2xl overflow-hidden">
+    <div class="card-body p-0">
+      <%= render "table", rows: rows, current_user: current_user, id: table_id %>
+    </div>
+  </section>
+</div>
