@@ -94,7 +94,7 @@ class LeaderboardService
   # so a player with no in-scope predictions still appears with a correct 0
   # rather than being dropped by the join.
   def stage_gate
-    "fixtures.stage >= #{@min_stage}" if @min_stage
+    "fixtures.stage >= #{@min_stage.to_i}" if @min_stage
   end
 
   # SUM(expr) over in-scope predictions; 0 when there are none.
