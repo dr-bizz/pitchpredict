@@ -125,4 +125,37 @@ class FixtureTest < ActiveSupport::TestCase
     assert Fixture.new(stage: :r32).knockout?
     assert Fixture.new(stage: :final).knockout?
   end
+
+  test "a finished level knockout requires a penalty winner" do
+    fixture = Fixture.new(stadium: stadia(:metlife), kickoff_at: 1.day.ago, stage: :sf,
+                          match_number: 101, home_team: teams(:spain), away_team: teams(:canada),
+                          status: :finished, home_score: 1, away_score: 1)
+    assert_not fixture.valid?
+    assert fixture.errors.added?(:base, "Enter who won the penalty shootout")
+
+    fixture.penalty_winner = :home
+    assert fixture.valid?, fixture.errors.full_messages.to_sentence
+  end
+
+  test "a decisive knockout result must not carry a penalty winner" do
+    fixture = Fixture.new(stadium: stadia(:metlife), kickoff_at: 1.day.ago, stage: :sf,
+                          match_number: 101, home_team: teams(:spain), away_team: teams(:canada),
+                          status: :finished, home_score: 2, away_score: 1, penalty_winner: :home)
+    assert_not fixture.valid?
+    assert fixture.errors[:penalty_winner].any?
+  end
+
+  test "a group fixture must not carry a penalty winner" do
+    fixture = fixtures(:finished_group)
+    fixture.penalty_winner = :home
+    assert_not fixture.valid?
+    assert fixture.errors[:penalty_winner].any?
+  end
+
+  test "penalty_winner_team resolves the side to a team, nil when unset" do
+    fixture = fixtures(:upcoming_group)
+    assert_nil fixture.penalty_winner_team
+    fixture.penalty_winner = :away
+    assert_equal fixture.away_team, fixture.penalty_winner_team
+  end
 end
