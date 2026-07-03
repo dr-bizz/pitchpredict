@@ -30,6 +30,12 @@ encouraging phrase ("You're on fire!", "Do you know the future??").
    badge `🎯 +<points>`.
 3. **Hype copy appears on every feed line**, second person when the row is the viewer
    ("You're…") and third person otherwise.
+4. **Feed ordering moves from type buckets to impressiveness weights** (found while
+   driving the app: with the old bucket ordering, either one-off exact hits buried an
+   11-game 👑 streak, or — once the threshold dropped to 2 — a user's own bland 2-streak
+   masked their exact hit). Weight = count + 100 for exact streaks, count for outcome
+   streaks, flat 4 for a one-off exact hit; recency breaks ties. The same weights pick
+   each user's single best item.
 
 ## Architecture
 

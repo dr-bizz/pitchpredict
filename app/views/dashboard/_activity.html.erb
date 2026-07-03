@@ -16,19 +16,15 @@
               <span class="font-semibold text-charcoal"><%= player_predictions_link(item.user, viewer: Current.user, name: is_you ? "#{item.user.name} (you)" : item.user.name) %></span>
               <% case item.type %>
               <% when :exact_streak %>
-                is on a streak of <%= item.count %> exact scores! 🔥
+                is on a streak of <%= item.count %> exact scores!
               <% when :outcome_streak %>
-                predicted <%= item.count %> matches in a row with the correct outcome
+                predicted <%= item.count %> matches in a row with the correct outcome.
               <% when :exact_hit %>
-                called <%= item.fixture.home_display %> <%= item.fixture.home_score %>–<%= item.fixture.away_score %> <%= item.fixture.away_display %> exactly
+                called <%= item.fixture.home_display %> <%= item.fixture.home_score %>–<%= item.fixture.away_score %> <%= item.fixture.away_display %> exactly.
               <% end %>
+              <span class="font-semibold text-charcoal"><%= activity_hype(item, you: is_you) %> <%= activity_emoji(item) %></span>
             </p>
-            <% badge = case item.type
-                       when :exact_streak then "🔥🎯💯 #{item.count}"
-                       when :outcome_streak then "🔥 #{item.count} in a row"
-                       else "+#{item.points}"
-                       end %>
-            <span class="badge badge-warning shrink-0 border-none font-semibold text-gold-dark"><%= badge %></span>
+            <span class="badge badge-warning shrink-0 border-none font-semibold text-gold-dark"><%= activity_badge(item) %></span>
           </li>
         <% end %>
       </ul>

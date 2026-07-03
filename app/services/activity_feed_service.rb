@@ -6,12 +6,15 @@ class ActivityFeedService
 
   CACHE_KEY = "activity/items"
   CACHE_TTL = 1.minute
-  STREAK_MIN = 3
+  STREAK_MIN = 2
   RECENT_WINDOW = 72.hours
   MAX_ITEMS = 6
 
-  # Highest first: an exact streak beats an outcome streak beats a one-off hit.
-  TYPE_PRIORITY = { exact_streak: 0, outcome_streak: 1, exact_hit: 2 }.freeze
+  # Feed ordering weight: exact streaks tower over everything, outcome streaks
+  # rank by length, and a one-off exact hit is worth a 4-long outcome streak —
+  # more impressive than the trivial 2–3 streaks, but no match for a long run.
+  EXACT_STREAK_BONUS = 100
+  EXACT_HIT_WEIGHT = 4
 
   def self.fetch_items
     Rails.cache.fetch(CACHE_KEY, expires_in: CACHE_TTL) { new.items }
@@ -21,8 +24,8 @@ class ActivityFeedService
     Rails.cache.delete(CACHE_KEY)
   end
 
-  # One Item per user (their best), ordered by type priority, then streak
-  # length, then recency; capped at MAX_ITEMS.
+  # One Item per user (their best), heaviest first, recency as tie-break;
+  # capped at MAX_ITEMS.
   def items
     cutoff = RECENT_WINDOW.ago
 
@@ -30,7 +33,7 @@ class ActivityFeedService
       best_item_for(predictions, cutoff)
     end
 
-    best.sort_by { |item| [ TYPE_PRIORITY.fetch(item.type), -item.count.to_i, -item.fixture.kickoff_at.to_i ] }
+    best.sort_by { |item| [ -weight(item), -item.fixture.kickoff_at.to_i ] }
         .first(MAX_ITEMS)
   end
 
@@ -46,24 +49,41 @@ class ActivityFeedService
               .group_by(&:user_id)
   end
 
+  def weight(item)
+    case item.type
+    when :exact_streak then EXACT_STREAK_BONUS + item.count
+    when :outcome_streak then item.count
+    else EXACT_HIT_WEIGHT
+    end
+  end
+
+  # A user's best item is their heaviest, judged by the same feed weights: an
+  # exact hit outweighs the short outcome streak it would otherwise start, but
+  # not a long run. Ties go to the earlier (more special) candidate.
   def best_item_for(predictions, cutoff)
-    streak_item(predictions, cutoff) || exact_hit_item(predictions, cutoff)
+    [ exact_streak_item(predictions, cutoff),
+      exact_hit_item(predictions, cutoff),
+      outcome_streak_item(predictions, cutoff) ].compact.max_by { |item| weight(item) }
   end
 
   # A streak is only shown while it is alive: the user's most recent scored
   # prediction is part of it and kicked off within the recent window.
-  def streak_item(predictions, cutoff)
+  def exact_streak_item(predictions, cutoff)
+    streak_item(predictions, cutoff, :exact_streak) { |p| p.points_awarded == ScoringService::EXACT_POINTS }
+  end
+
+  def outcome_streak_item(predictions, cutoff)
+    streak_item(predictions, cutoff, :outcome_streak) { |p| p.points_awarded.positive? }
+  end
+
+  def streak_item(predictions, cutoff, type, &hit)
     last = predictions.last
     return nil if last.fixture.kickoff_at < cutoff
 
-    exact = trailing_count(predictions) { |p| p.points_awarded == ScoringService::EXACT_POINTS }
-    outcome = trailing_count(predictions) { |p| p.points_awarded.positive? }
+    count = trailing_count(predictions, &hit)
+    return nil if count < STREAK_MIN
 
-    if exact >= STREAK_MIN
-      Item.new(type: :exact_streak, user: last.user, count: exact, fixture: last.fixture, points: nil)
-    elsif outcome >= STREAK_MIN
-      Item.new(type: :outcome_streak, user: last.user, count: outcome, fixture: last.fixture, points: nil)
-    end
+    Item.new(type: type, user: last.user, count: count, fixture: last.fixture, points: nil)
   end
 
   # A one-off exact hit is anchored on the exact-hit fixture itself, so it

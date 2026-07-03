@@ -16,6 +16,17 @@ class ActivityFeedServiceTest < ActiveSupport::TestCase
     prediction
   end
 
+  test "reports an outcome streak from just 2 scored matches" do
+    user = users(:one)
+    scored_prediction(user, points: 2, days_ago: 1, match_number: 204)
+    scored_prediction(user, points: 3, days_ago: 0.5, match_number: 205)
+
+    item = ActivityFeedService.new.items.find { |i| i.user.id == user.id }
+
+    assert_equal :outcome_streak, item.type
+    assert_equal 2, item.count
+  end
+
   test "reports an outcome streak of 3+ scored matches" do
     user = users(:one)
     scored_prediction(user, points: 2, days_ago: 2, match_number: 201)
@@ -76,7 +87,9 @@ class ActivityFeedServiceTest < ActiveSupport::TestCase
     scored_prediction(user, points: 4, days_ago: 5, match_number: 201)
     scored_prediction(user, points: 2, days_ago: 1, match_number: 202)
 
-    assert_empty ActivityFeedService.new.items.select { |i| i.user.id == user.id }
+    # The trailing pair is still a live outcome streak, but the old exact hit
+    # itself must not come back.
+    assert_not ActivityFeedService.new.items.any? { |i| i.user.id == user.id && i.type == :exact_hit }
   end
 
   test "streaks anchored on old fixtures are not recent activity" do
@@ -86,6 +99,32 @@ class ActivityFeedServiceTest < ActiveSupport::TestCase
     scored_prediction(user, points: 2, days_ago: 8, match_number: 203)
 
     assert_empty ActivityFeedService.new.items.select { |i| i.user.id == user.id }
+  end
+
+  test "a long outcome streak outranks a one-off exact hit" do
+    streaker = users(:one)
+    5.times { |n| scored_prediction(streaker, points: 2, days_ago: 1 - n * 0.1, match_number: 211 + n) }
+    hitter = users(:two)
+    hitter.predictions.delete_all
+    scored_prediction(hitter, points: 4, days_ago: 0.1, match_number: 220)
+
+    items = ActivityFeedService.new.items
+
+    assert_operator items.index { |i| i.user.id == streaker.id },
+                    :<, items.index { |i| i.user.id == hitter.id }
+  end
+
+  test "an exact hit outranks a short outcome streak" do
+    streaker = users(:one)
+    2.times { |n| scored_prediction(streaker, points: 2, days_ago: 1 - n * 0.1, match_number: 211 + n) }
+    hitter = users(:two)
+    hitter.predictions.delete_all
+    scored_prediction(hitter, points: 4, days_ago: 2, match_number: 220)
+
+    items = ActivityFeedService.new.items
+
+    assert_operator items.index { |i| i.user.id == hitter.id },
+                    :<, items.index { |i| i.user.id == streaker.id }
   end
 
   test "caps the feed at MAX_ITEMS with one item per user" do
