@@ -57,7 +57,7 @@ module KnockoutBracket
   def self.by_stage_index
     @by_stage_index ||= specs
       .group_by { |s| s[:stage] }
-      .flat_map { |stage, list| list.each_with_index.map { |s, i| [[ stage, i ], s] } }
+      .flat_map { |stage, list| list.each_with_index.map { |s, i| [ [ stage, i ], s ] } }
       .to_h
   end
 
