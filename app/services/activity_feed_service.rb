@@ -47,8 +47,14 @@ class ActivityFeedService
   end
 
   def best_item_for(predictions, cutoff)
+    streak_item(predictions, cutoff) || exact_hit_item(predictions, cutoff)
+  end
+
+  # A streak is only shown while it is alive: the user's most recent scored
+  # prediction is part of it and kicked off within the recent window.
+  def streak_item(predictions, cutoff)
     last = predictions.last
-    return nil if last.fixture.kickoff_at < cutoff # nothing recent to celebrate
+    return nil if last.fixture.kickoff_at < cutoff
 
     exact = trailing_count(predictions) { |p| p.points_awarded == ScoringService::EXACT_POINTS }
     outcome = trailing_count(predictions) { |p| p.points_awarded.positive? }
@@ -57,10 +63,20 @@ class ActivityFeedService
       Item.new(type: :exact_streak, user: last.user, count: exact, fixture: last.fixture, points: nil)
     elsif outcome >= STREAK_MIN
       Item.new(type: :outcome_streak, user: last.user, count: outcome, fixture: last.fixture, points: nil)
-    elsif last.points_awarded == ScoringService::EXACT_POINTS
-      Item.new(type: :exact_hit, user: last.user, count: nil, fixture: last.fixture,
-               points: ScoringService::EXACT_POINTS)
     end
+  end
+
+  # A one-off exact hit is anchored on the exact-hit fixture itself, so it
+  # stays in the feed for the whole recent window even when later scored
+  # fixtures follow it. Most recent exact score wins.
+  def exact_hit_item(predictions, cutoff)
+    hit = predictions.reverse_each.find do |p|
+      p.fixture.kickoff_at >= cutoff && p.points_awarded == ScoringService::EXACT_POINTS
+    end
+    return nil unless hit
+
+    Item.new(type: :exact_hit, user: hit.user, count: nil, fixture: hit.fixture,
+             points: ScoringService::EXACT_POINTS)
   end
 
   # Length of the run satisfying the block, counting back from the last

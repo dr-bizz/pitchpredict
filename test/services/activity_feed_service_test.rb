@@ -59,6 +59,26 @@ class ActivityFeedServiceTest < ActiveSupport::TestCase
     assert_equal ScoringService::EXACT_POINTS, item.points
   end
 
+  test "an exact hit still shows when a later scored fixture follows it" do
+    user = users(:one)
+    exact = scored_prediction(user, points: 4, days_ago: 1, match_number: 201)
+    scored_prediction(user, points: 2, days_ago: 0.5, match_number: 202)
+
+    item = ActivityFeedService.new.items.find { |i| i.user.id == user.id }
+
+    assert_equal :exact_hit, item.type
+    assert_equal exact.fixture, item.fixture
+    assert_equal ScoringService::EXACT_POINTS, item.points
+  end
+
+  test "exact hits outside the recent window are not resurfaced by newer results" do
+    user = users(:one)
+    scored_prediction(user, points: 4, days_ago: 5, match_number: 201)
+    scored_prediction(user, points: 2, days_ago: 1, match_number: 202)
+
+    assert_empty ActivityFeedService.new.items.select { |i| i.user.id == user.id }
+  end
+
   test "streaks anchored on old fixtures are not recent activity" do
     user = users(:one)
     scored_prediction(user, points: 2, days_ago: 10, match_number: 201)
