@@ -193,17 +193,18 @@
         <p class="text-sm font-bold text-charcoal">⚽ Knockout matches &amp; penalty shootouts</p>
         <ul class="mt-2 list-disc space-y-1 pl-5 text-sm text-gray-600">
           <li>
-            Points only count if you pick the right team to advance — the wrong advancer scores
-            +0, even with the right goal difference.
+            In the knockout rounds, all that matters is who goes through. If the team you
+            back goes through — even by winning a penalty shootout — you score points.
           </li>
           <li>
-            Predict a draw and you also pick who wins the penalty shootout — that's your advancer.
-            Nail the drawn score and the shootout for +<%= ScoringService::EXACT_POINTS %>.
+            Think it'll be a draw after 90 minutes? Then you also pick who wins the
+            penalty shootout.
           </li>
           <li>
-            Exact score (+<%= ScoringService::EXACT_POINTS %>) and goal difference
-            (+<%= ScoringService::DIFFERENCE_POINTS %>) are judged on the final recorded score;
-            the right advancer alone is +<%= ScoringService::TENDENCY_POINTS %>.
+            Right team through: +<%= ScoringService::TENDENCY_POINTS %>. Right goal
+            difference too: +<%= ScoringService::DIFFERENCE_POINTS %>. Exact score:
+            +<%= ScoringService::EXACT_POINTS %>. Wrong team through: +0, however close
+            your score was.
           </li>
         </ul>
       </div>

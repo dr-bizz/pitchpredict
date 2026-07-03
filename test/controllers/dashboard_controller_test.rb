@@ -93,8 +93,9 @@ class DashboardControllerTest < ActionDispatch::IntegrationTest
 
     assert_response :success
     assert_select "section", text: /Knockout matches/ do
-      assert_select "li", text: /pick the right team to advance/i
-      assert_select "li", text: /penalty shootout/i
+      assert_select "li", text: /who goes through/i
+      assert_select "li", text: /even by winning a penalty shootout/i
+      assert_select "li", text: /wrong team through/i
     end
   end
 
