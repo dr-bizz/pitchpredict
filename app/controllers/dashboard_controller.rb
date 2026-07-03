@@ -21,6 +21,10 @@ class DashboardController < ApplicationController
     @remaining_to_predict = Fixture.upcoming.scheduled.teams_set
                                    .where.not(id: Current.user.predictions.select(:fixture_id)).count
 
+    # Recent hits & streaks card. Cached like the leaderboard; recomputed only
+    # when a prediction/user changes or a fixture is scored.
+    @activity_items = ActivityFeedService.fetch_items
+
     @champion_pick = Current.user.champion_pick
     @champion_locked = ChampionPick.picks_locked?
     @teams = Team.order(:name) unless @champion_locked

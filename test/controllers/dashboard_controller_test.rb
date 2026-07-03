@@ -117,4 +117,59 @@ class DashboardControllerTest < ActionDispatch::IntegrationTest
       assert_no_match "Picks locked", response.body
     end
   end
+
+  test "shows recent activity with a streak line" do
+    # Drop the fixture predictions (users(:two) has a stale points_awarded: 5
+    # row 2 days ago that would break the trailing exact run below).
+    Prediction.delete_all
+    fixture = Fixture.create!(home_team: teams(:brazil), away_team: teams(:france),
+      stadium: stadia(:azteca), kickoff_at: 1.day.ago, stage: :group,
+      status: :finished, home_score: 2, away_score: 1, match_number: 401)
+    3.times do |n|
+      f = n.zero? ? fixture : Fixture.create!(home_team: teams(:brazil), away_team: teams(:france),
+        stadium: stadia(:azteca), kickoff_at: (1 + n).days.ago, stage: :group,
+        status: :finished, home_score: 2, away_score: 1, match_number: 401 + n)
+      Prediction.new(user: users(:two), fixture: f, home_score: 2, away_score: 1,
+        points_awarded: ScoringService::EXACT_POINTS).save!(validate: false)
+    end
+    sign_in_as(@user)
+
+    get root_path
+
+    assert_response :success
+    assert_select "h2", text: "Recent activity"
+    assert_select "#activity", text: /streak of 3 exact scores/
+    # A 3-exact streak sits in the first exact tier: hype line + emoji badge.
+    assert_select "#activity", text: /Back-to-back bullseyes!/
+    assert_select "#activity .badge", text: "🎯🎯 3"
+  end
+
+  test "activity hype speaks to the viewer in the second person" do
+    Prediction.delete_all
+    6.times do |n|
+      fixture = Fixture.create!(home_team: teams(:brazil), away_team: teams(:france),
+        stadium: stadia(:azteca), kickoff_at: (0.5 + n).days.ago, stage: :group,
+        status: :finished, home_score: 2, away_score: 1, match_number: 401 + n)
+      Prediction.new(user: @user, fixture: fixture, home_score: 2, away_score: 0,
+        points_awarded: ScoringService::TENDENCY_POINTS).save!(validate: false)
+    end
+    sign_in_as(@user)
+
+    get root_path
+
+    assert_response :success
+    # A 6-outcome streak for the signed-in viewer: "You're on fire!" 🔥
+    assert_select "#activity", text: /You're on fire!/
+    assert_select "#activity .badge", text: "🔥 6"
+  end
+
+  test "shows the activity empty state when nothing is recent" do
+    Prediction.delete_all
+    sign_in_as(@user)
+
+    get root_path
+
+    assert_select "h2", text: "Recent activity"
+    assert_select "#activity", text: /No hot streaks yet/
+  end
 end

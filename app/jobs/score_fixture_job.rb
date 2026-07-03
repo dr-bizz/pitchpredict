@@ -13,6 +13,7 @@ class ScoreFixtureJob < ApplicationJob
     # again defensively: a result correction on a fixture nobody predicted
     # (e.g. the final, which drives the champion bonus) touches no Prediction.
     LeaderboardService.expire_rows
+    ActivityFeedService.expire_items
 
     # CONTRACT with the UI stage: the player-facing pages (dashboard,
     # predictions grid, leaderboard) subscribe with turbo_stream_from "results".

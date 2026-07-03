@@ -18,8 +18,11 @@ class Prediction < ApplicationRecord
   scope :for_stage, ->(stage) { joins(:fixture).where(fixtures: { stage: stage }) }
 
   # Any prediction change (new pick, edit, points awarded) alters the cached
-  # leaderboard rows, so drop them from Solid Cache.
-  after_commit { LeaderboardService.expire_rows }
+  # leaderboard rows AND the recent-activity feed, so drop both from Solid Cache.
+  after_commit do
+    LeaderboardService.expire_rows
+    ActivityFeedService.expire_items
+  end
 
   # The team the player picked to go through on penalties, or nil.
   def penalty_winner_team
