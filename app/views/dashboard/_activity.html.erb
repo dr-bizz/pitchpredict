@@ -24,8 +24,8 @@
               <% end %>
             </p>
             <% badge = case item.type
-                       when :exact_streak then "🔥 #{item.count}"
-                       when :outcome_streak then "#{item.count} in a row"
+                       when :exact_streak then "🔥🎯💯 #{item.count}"
+                       when :outcome_streak then "🔥 #{item.count} in a row"
                        else "+#{item.points}"
                        end %>
             <span class="badge badge-warning shrink-0 border-none font-semibold text-gold-dark"><%= badge %></span>
