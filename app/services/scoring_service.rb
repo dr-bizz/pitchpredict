@@ -18,6 +18,16 @@ class ScoringService
   class << self
     def points_for(predicted_home:, predicted_away:, actual_home:, actual_away:,
                    predicted_pen_winner: nil, actual_pen_winner: nil)
+      # Legacy rows: a knockout draw predicted before shootout picks existed has no
+      # advancer (post-feature saves are forced to pick one). When the match was
+      # decided on pens, score the scoreline alone — never 0 for a pick the player
+      # couldn't make, never the advancer tier (2) for a pick they didn't make.
+      # actual_pen_winner is only ever set on a level knockout score, so goal
+      # difference always matches a predicted draw here.
+      if actual_pen_winner.present? && predicted_home == predicted_away && predicted_pen_winner.nil?
+        return predicted_home == actual_home ? EXACT_POINTS : DIFFERENCE_POINTS
+      end
+
       # A knockout that ends level is decided by the shootout winner, so the
       # advancer — not the drawn scoreline — is the outcome that must match.
       # For group matches (pen winner always nil) a level score stays a :draw,

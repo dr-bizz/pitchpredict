@@ -48,6 +48,20 @@ class ScoringServiceTest < ActiveSupport::TestCase
       actual_home: 1, actual_away: 1, predicted_pen_winner: "away", actual_pen_winner: "away")
   end
 
+  test "legacy knockout draw pick without a winner scores the scoreline on a pens-decided match" do
+    # Rows from before shootout picks existed: the player never chose an advancer,
+    # so score the scoreline alone rather than an automatic 0.
+    assert_equal 4, ScoringService.points_for(predicted_home: 1, predicted_away: 1,
+      actual_home: 1, actual_away: 1, predicted_pen_winner: nil, actual_pen_winner: "home")
+    assert_equal 3, ScoringService.points_for(predicted_home: 2, predicted_away: 2,
+      actual_home: 1, actual_away: 1, predicted_pen_winner: nil, actual_pen_winner: "home")
+  end
+
+  test "legacy knockout draw pick still scores 0 on a decisive result" do
+    assert_equal 0, ScoringService.points_for(predicted_home: 1, predicted_away: 1,
+      actual_home: 2, actual_away: 1, predicted_pen_winner: nil, actual_pen_winner: nil)
+  end
+
   test "score_fixture! recomputes and persists points for every prediction of the fixture" do
     fixture = fixtures(:finished_group) # brazil 2-1 france
 
