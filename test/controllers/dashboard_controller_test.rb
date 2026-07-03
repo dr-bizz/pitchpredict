@@ -86,6 +86,19 @@ class DashboardControllerTest < ActionDispatch::IntegrationTest
     end
   end
 
+  test "how it works explains knockout and penalty-shootout scoring" do
+    sign_in_as(@user)
+
+    get root_path
+
+    assert_response :success
+    assert_select "section", text: /Knockout matches/ do
+      assert_select "li", text: /who goes through/i
+      assert_select "li", text: /even by winning a penalty shootout/i
+      assert_select "li", text: /wrong team through/i
+    end
+  end
+
   test "shows champion pick chips before the pick deadline" do
     sign_in_as(@user)
 
