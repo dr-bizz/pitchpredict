@@ -42,16 +42,19 @@ class ScoringService
       # until an admin re-saves the result).
       fixture.transaction do
         fixture.predictions.find_each do |prediction|
-          prediction.update!(
-            points_awarded: points_for(
-              predicted_home: prediction.home_score,
-              predicted_away: prediction.away_score,
-              actual_home: fixture.home_score,
-              actual_away: fixture.away_score,
-              predicted_pen_winner: prediction.penalty_winner,
-              actual_pen_winner: fixture.penalty_winner
-            )
+          # save!(validate: false), not update!: a legacy prediction that fails
+          # today's validations (e.g. a pre-shootout-feature knockout draw with no
+          # penalty_winner) must not abort scoring for the whole fixture. Callbacks
+          # (leaderboard cache expiry) still run.
+          prediction.points_awarded = points_for(
+            predicted_home: prediction.home_score,
+            predicted_away: prediction.away_score,
+            actual_home: fixture.home_score,
+            actual_away: fixture.away_score,
+            predicted_pen_winner: prediction.penalty_winner,
+            actual_pen_winner: fixture.penalty_winner
           )
+          prediction.save!(validate: false)
         end
       end
     end

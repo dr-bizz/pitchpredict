@@ -82,6 +82,23 @@ class ScoringServiceTest < ActiveSupport::TestCase
     assert_equal "home", right.reload.penalty_winner # scoring preserves the advancer
   end
 
+  test "score_fixture! is not blocked by a legacy knockout-draw prediction without a penalty winner" do
+    ko = Fixture.create!(home_team: teams(:brazil), away_team: teams(:france),
+      stadium: stadia(:azteca), kickoff_at: 1.day.ago, stage: :r32, status: :finished,
+      home_score: 2, away_score: 1, match_number: 102)
+    exact = Prediction.new(user: users(:one), fixture: ko, home_score: 2, away_score: 1)
+    exact.save!(validate: false)
+    # Pre-penalty-feature row: a knockout draw pick with no shootout winner.
+    # Invalid under today's validations, but real rows like this exist in prod.
+    legacy_draw = Prediction.new(user: users(:two), fixture: ko, home_score: 1, away_score: 1)
+    legacy_draw.save!(validate: false)
+
+    ScoringService.score_fixture!(ko)
+
+    assert_equal 4, exact.reload.points_awarded
+    assert_equal 0, legacy_draw.reload.points_awarded # wrong outcome on a decisive result
+  end
+
   test "champion_team_id is nil without a finished final" do
     assert_nil ScoringService.champion_team_id
 
