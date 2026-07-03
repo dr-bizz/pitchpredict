@@ -86,4 +86,24 @@ class ActivityFeedServiceTest < ActiveSupport::TestCase
     assert_equal ActivityFeedService.fetch_items, ActivityFeedService.fetch_items
     ActivityFeedService.expire_items # must not raise; cache key dropped
   end
+
+  test "saving a prediction expires the cached feed" do
+    # The test env cache store is :null_store, which never keeps anything, so
+    # this test would pass vacuously against it. Swap in a real store to prove
+    # the after_commit hook actually drops the stale cached feed.
+    original_cache = Rails.cache
+    Rails.cache = ActiveSupport::Cache::MemoryStore.new
+
+    user = users(:one)
+    scored_prediction(user, points: 4, days_ago: 1, match_number: 210)
+    assert ActivityFeedService.fetch_items.any? { |i| i.user.id == user.id }
+
+    # Rescoring to 0 must drop the cached exact hit once the cache is expired
+    # by the save (production path: ScoreFixtureJob rescoring a correction).
+    Prediction.last.update!(points_awarded: 0)
+
+    assert_not ActivityFeedService.fetch_items.any? { |i| i.user.id == user.id && i.type == :exact_hit }
+  ensure
+    Rails.cache = original_cache
+  end
 end

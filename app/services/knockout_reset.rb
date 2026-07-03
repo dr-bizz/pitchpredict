@@ -15,6 +15,7 @@ class KnockoutReset
       reset_knockout_fixtures
     end
     LeaderboardService.expire_rows if defined?(LeaderboardService)
+    ActivityFeedService.expire_items if defined?(ActivityFeedService)
   end
 
   private

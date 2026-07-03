@@ -10,7 +10,11 @@ class User < ApplicationRecord
 
   validates :name, presence: true
 
-  # Every user appears on the leaderboard (even with zero predictions), so new
-  # signups and renames must drop the cached rows from Solid Cache.
-  after_commit { LeaderboardService.expire_rows }
+  # Every user appears on the leaderboard (even with zero predictions), and the
+  # activity feed shows names too, so new signups and renames must drop both
+  # cached entries from Solid Cache.
+  after_commit do
+    LeaderboardService.expire_rows
+    ActivityFeedService.expire_items
+  end
 end
