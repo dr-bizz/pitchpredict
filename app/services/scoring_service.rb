@@ -18,6 +18,16 @@ class ScoringService
   class << self
     def points_for(predicted_home:, predicted_away:, actual_home:, actual_away:,
                    predicted_pen_winner: nil, actual_pen_winner: nil)
+      # Legacy rows: a knockout draw predicted before shootout picks existed has no
+      # advancer (post-feature saves are forced to pick one). When the match was
+      # decided on pens, score the scoreline alone — never 0 for a pick the player
+      # couldn't make, never the advancer tier (2) for a pick they didn't make.
+      # actual_pen_winner is only ever set on a level knockout score, so goal
+      # difference always matches a predicted draw here.
+      if actual_pen_winner.present? && predicted_home == predicted_away && predicted_pen_winner.nil?
+        return predicted_home == actual_home ? EXACT_POINTS : DIFFERENCE_POINTS
+      end
+
       # A knockout that ends level is decided by the shootout winner, so the
       # advancer — not the drawn scoreline — is the outcome that must match.
       # For group matches (pen winner always nil) a level score stays a :draw,
@@ -42,16 +52,19 @@ class ScoringService
       # until an admin re-saves the result).
       fixture.transaction do
         fixture.predictions.find_each do |prediction|
-          prediction.update!(
-            points_awarded: points_for(
-              predicted_home: prediction.home_score,
-              predicted_away: prediction.away_score,
-              actual_home: fixture.home_score,
-              actual_away: fixture.away_score,
-              predicted_pen_winner: prediction.penalty_winner,
-              actual_pen_winner: fixture.penalty_winner
-            )
+          # save!(validate: false), not update!: a legacy prediction that fails
+          # today's validations (e.g. a pre-shootout-feature knockout draw with no
+          # penalty_winner) must not abort scoring for the whole fixture. Callbacks
+          # (leaderboard cache expiry) still run.
+          prediction.points_awarded = points_for(
+            predicted_home: prediction.home_score,
+            predicted_away: prediction.away_score,
+            actual_home: fixture.home_score,
+            actual_away: fixture.away_score,
+            predicted_pen_winner: prediction.penalty_winner,
+            actual_pen_winner: fixture.penalty_winner
           )
+          prediction.save!(validate: false)
         end
       end
     end

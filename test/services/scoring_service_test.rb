@@ -48,6 +48,20 @@ class ScoringServiceTest < ActiveSupport::TestCase
       actual_home: 1, actual_away: 1, predicted_pen_winner: "away", actual_pen_winner: "away")
   end
 
+  test "legacy knockout draw pick without a winner scores the scoreline on a pens-decided match" do
+    # Rows from before shootout picks existed: the player never chose an advancer,
+    # so score the scoreline alone rather than an automatic 0.
+    assert_equal 4, ScoringService.points_for(predicted_home: 1, predicted_away: 1,
+      actual_home: 1, actual_away: 1, predicted_pen_winner: nil, actual_pen_winner: "home")
+    assert_equal 3, ScoringService.points_for(predicted_home: 2, predicted_away: 2,
+      actual_home: 1, actual_away: 1, predicted_pen_winner: nil, actual_pen_winner: "home")
+  end
+
+  test "legacy knockout draw pick still scores 0 on a decisive result" do
+    assert_equal 0, ScoringService.points_for(predicted_home: 1, predicted_away: 1,
+      actual_home: 2, actual_away: 1, predicted_pen_winner: nil, actual_pen_winner: nil)
+  end
+
   test "score_fixture! recomputes and persists points for every prediction of the fixture" do
     fixture = fixtures(:finished_group) # brazil 2-1 france
 
@@ -80,6 +94,23 @@ class ScoringServiceTest < ActiveSupport::TestCase
     assert_equal 4, right.reload.points_awarded # exact score + right advancer
     assert_equal 0, wrong.reload.points_awarded # exact score, wrong advancer
     assert_equal "home", right.reload.penalty_winner # scoring preserves the advancer
+  end
+
+  test "score_fixture! is not blocked by a legacy knockout-draw prediction without a penalty winner" do
+    ko = Fixture.create!(home_team: teams(:brazil), away_team: teams(:france),
+      stadium: stadia(:azteca), kickoff_at: 1.day.ago, stage: :r32, status: :finished,
+      home_score: 2, away_score: 1, match_number: 102)
+    exact = Prediction.new(user: users(:one), fixture: ko, home_score: 2, away_score: 1)
+    exact.save!(validate: false)
+    # Pre-penalty-feature row: a knockout draw pick with no shootout winner.
+    # Invalid under today's validations, but real rows like this exist in prod.
+    legacy_draw = Prediction.new(user: users(:two), fixture: ko, home_score: 1, away_score: 1)
+    legacy_draw.save!(validate: false)
+
+    ScoringService.score_fixture!(ko)
+
+    assert_equal 4, exact.reload.points_awarded
+    assert_equal 0, legacy_draw.reload.points_awarded # wrong outcome on a decisive result
   end
 
   test "champion_team_id is nil without a finished final" do
