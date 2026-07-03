@@ -104,4 +104,37 @@ class DashboardControllerTest < ActionDispatch::IntegrationTest
       assert_no_match "Picks locked", response.body
     end
   end
+
+  test "shows recent activity with a streak line" do
+    # Drop the fixture predictions (users(:two) has a stale points_awarded: 5
+    # row 2 days ago that would break the trailing exact run below).
+    Prediction.delete_all
+    fixture = Fixture.create!(home_team: teams(:brazil), away_team: teams(:france),
+      stadium: stadia(:azteca), kickoff_at: 1.day.ago, stage: :group,
+      status: :finished, home_score: 2, away_score: 1, match_number: 401)
+    3.times do |n|
+      f = n.zero? ? fixture : Fixture.create!(home_team: teams(:brazil), away_team: teams(:france),
+        stadium: stadia(:azteca), kickoff_at: (1 + n).days.ago, stage: :group,
+        status: :finished, home_score: 2, away_score: 1, match_number: 401 + n)
+      Prediction.new(user: users(:two), fixture: f, home_score: 2, away_score: 1,
+        points_awarded: ScoringService::EXACT_POINTS).save!(validate: false)
+    end
+    sign_in_as(@user)
+
+    get root_path
+
+    assert_response :success
+    assert_select "h2", text: "Recent activity"
+    assert_select "#activity", text: /streak of 3 exact scores/
+  end
+
+  test "shows the activity empty state when nothing is recent" do
+    Prediction.delete_all
+    sign_in_as(@user)
+
+    get root_path
+
+    assert_select "h2", text: "Recent activity"
+    assert_select "#activity", text: /No hot streaks yet/
+  end
 end
